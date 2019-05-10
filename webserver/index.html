@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>webserver</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./css/styles.css" type="text/css">
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function(){
+
+      });
+
+
+    </script>
+  </head>
+  <body>
+    <h1>WebServer</h1>
+    <div class="card">
+    	<h3>Ozil</h3>
+      <img src="./images/ozil.jpg" alt="ozil" class="playerPic">
+      <p>link : <a href="https://www.google.com/search?q=ozil&oq=ozil&aqs=chrome.0.69i59l2j0l4.2461j0j7&sourceid=chrome&ie=UTF-8">Ozil link</a></p>
+    </div>
+    <div class="card">
+      <h3>Ramsey</h3>
+      <img src="./images/ramsey.jpg" alt="ramsey" class="playerPic">
+      <p>link : <a href="./temp.html">Ramsey link</a></p>
+    </div>
+    <!--
+    <form id="myForm">
+      <input type="text" name="title" value="hello"><br>
+      <textarea name="body">world</textarea><br>
+      <button>Send</button>
+    </form>-->
+
+     <form action="http://localhost:8000" method="post" enctype="text/plain">
+      <input name="name" value="henry">
+      <input name="url" value="temp.html">
+      <button type="submit">보기</button>
+    </form>
+    <p>
+    <form action="http://localhost:8000" method="post" enctype="multipart/form-data">
+      <!--<input name="filename1" type="text" value="">-->
+      <input name="file1" type="file" accept="image/*" onchange="fileCheck(this)">
+      <!--<input name="filename2" type="text" value="">-->
+      <input name="file2" type="file" accept="image/*" onchange="fileCheck(this)"> 
+      <button type="submit">전송</button>
+    </form>
+    <script>
+      function fileCheck(obj){
+        var pathpoint = obj.value.lastIndexOf('.');
+        var filepoint = obj.value.substring(pathpoint+1, obj.length);
+        var filetype = filepoint.toLowerCase();
+        var check_file_type = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'ico'];
+        if(check_file_type.indexOf(filetype)==-1){
+          alert('이미지 파일만 선택 가능');
+          parentObj = obj.parentNode;
+          node = parentObj.replaceChild(obj.cloneNode(true), obj);
+          return false;
+        }
+      }
+    </script>
+
+
+</body>
+</html>
+  <!--
+  <script>
+    $( "#myForm" ).submit(function( event ) {
+      event.preventDefault();
+  
+      var data = $(this).serializeArray();
+      data = data.concat([{name:"userId",value:1}]);
+  
+      $.post( "//jsonplaceholder.typicode.com/posts", data ).done(function(data ) {
+        console.log( data );
+      });
+    });
+  </script>
+  -->
+    <!--
+    <form>
+      <div>name : <input type="text" name="name" value=""></div>
+      <div>url : <input type="text" name="url" value=""></div>
+      <input type="button" name="but" value="등록"></form>
+    <div id="footer"></div>
+  -->
+  
