@@ -14,6 +14,10 @@ import java.util.Date;
 import java.lang.String;
 import java.text.SimpleDateFormat; // POST. date print
 import java.io.FileWriter; 
+import java.util.Base64;
+import java.util.Base64.Decoder;
+import java.util.Base64.Encoder;    // for Image parsing
+import java.io.FileOutputStream;
 
 public class ServerThread extends Thread {
     private static final String webRoute = ".";
@@ -111,16 +115,24 @@ public class ServerThread extends Thread {
                         
                         int fileflag = 0; // distinguish file is new or elder
                         int lineflag = 3; // to read file start line
-                        String temp = ""; // using after finish read files
+                        
                         index = 0;
                         String fileContent = ""; // for read file content
                         String filetype = ""; // for distinguish file mime type
+                        
 
                         while((readBody = inFromClient.readLine())!= null){
                             
                             if(readBody.contains("--" + boundary)){//when boundary read, new file is starting.
                                 if(fileflag != 0){
-                                    bodyMap.put("fileContent" + fileflag, fileContent); // for store textFile
+                                    //text file
+                                    if(filetype.endsWith("txt")){
+                                        makeFile(fileContent, filetype);
+                                        bodyMap.put("fileContent"+fileflag, fileContent);
+                                    }
+                                    else
+                                        makeImageFile(fileContent, filetype);//for store image files
+
                                     bodyMap.put("filename" + fileflag, filetype); //for store name of textfile
                                 }
                                 fileflag++;
@@ -129,9 +141,12 @@ public class ServerThread extends Thread {
                             }
 
                             if((index = readBody.indexOf("filename=")) != -1){
-                                filetype = readBody.substring(index + 9);
+                                int endIndex = (int)readBody.length();
+                                filetype = readBody.substring(index + 10, endIndex - 1);
+                                
+
                                 //System.out.println("@@@ " + filetype);
-                                temp = mimetypeDetect(filetype); //not using..
+                                //temp = mimetypeDetect(filetype); //not using..
                             } 
                             if(lineflag <= 0){
                                 fileContent += readBody;
@@ -139,16 +154,15 @@ public class ServerThread extends Thread {
 
                             lineflag--;
                                 
-                            //after reading body, how can we write the file to browser? 
 
 
                             if(readBody.contains("--" + boundary + "--")){
                                 bodyMap.put("postType", "2");
-                                File newHtml = makeHTML(bodyMap);
+                                File newHtml = makeHTML(bodyMap, bodyMap.get("filename1"), bodyMap.get("filename2"), bodyMap.get("filename3"));
                                 int fileL = (int)newHtml.length();
                                 byte[] fileData = fileRead(newHtml, fileL);
 
-                                outToClient.writeBytes("HTTP/1.1 200 OK\r\nContent-Length: "+ newHtml.length()+"\r\nDate: "+today+"\r\n"+mimetypeDetect(filetype)+"\r\n");
+                                outToClient.writeBytes("HTTP/1.1 200 OK\r\nContent-Length: "+ newHtml.length()+"\r\nDate: "+today+"\r\n"+mimetypeDetect(".html")+"\r\n");   //filetype -> ".html" change
                                 
                                 outToClient.write(fileData, 0, fileL);
 
@@ -201,6 +215,47 @@ public class ServerThread extends Thread {
 
         }
     }
+    public File makeImageFile(String dataOfFile, String fileName) throws IOException{
+        String filePath = "./temp/" + fileName;
+        System.out.println("filePath : " + filePath);
+        File newFile = new File(filePath);
+        
+
+        byte[] targetBytes = dataOfFile.getBytes();
+        Encoder encoder = Base64.getEncoder();
+        byte[] encodedBytes = encoder.encode(targetBytes);
+
+
+        FileOutputStream fos = new FileOutputStream(filePath);
+        fos.write(encodedBytes);
+
+        fos.flush();
+        fos.close();
+        /*
+        String writeString = encodedBytes.toString();
+        System.out.println(writeString);
+        FileWriter fw = new FileWriter(newFile, false);
+        fw.write(dataOfFile);
+        fw.flush();
+        fw.close();
+        */
+        return newFile;
+    }
+    public File makeFile(String dataOfFile, String fileName) throws IOException{//first parameter byte? String?
+        System.out.println("dataOfFile : " + dataOfFile);
+        String filePath = "./temp/" + fileName;
+        System.out.println("filePath : " + filePath);
+        File newFile = new File(filePath);
+        FileWriter fw = new FileWriter(newFile, false);
+        //String fileContent = dataOfFile.toString();
+        //fw.write(fileContent);
+        
+        fw.write(dataOfFile);
+        fw.flush();
+        fw.close();
+        System.out.println("bye");
+        return newFile;
+    }
     public File makeHTML(HashMap<String, String> map) throws IOException{
         String name = map.get("name");
         String url = map.get("url");
@@ -208,9 +263,31 @@ public class ServerThread extends Thread {
         FileWriter fw = new FileWriter(html, false);
         if(map.get("postType").equals("1"))
             fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>New</h1>\n<div class='card'>\n<h3>" + name + "</h3>\n<img src=" + url + " alt=" + name + " class='playerPic'>\n</div>\n</body>\n</html>");
+        /*
         else if(map.get("postType").equals("2")){
             fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>POST N files</h1>\n<div class='card'>\n<h3>" + map.get("filename1") + "</h3>\n<p>" + map.get("fileContent1") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename2") + "</h3>\n<p>" + map.get("fileContent2") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename3") + "</h3>\n<p>" + map.get("fileContent3") + "</p>\n</div>\n</body>\n</html>");
         }
+        */
+        else if(map.get("postType").equals("2")){
+            File file1 = new File("./temp/" + map.get("filename1"));
+            File file2 = new File("./temp/" + map.get("filename2"));
+            File file3 = new File("./temp/" + map.get("filename3"));
+
+            fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>POST N files</h1>\n<div class='card'>\n<h3>" + map.get("filename1") + "</h3>\n<p>" + map.get("fileContent1") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename2") + "</h3>\n<p>" + map.get("fileContent2") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename3") + "</h3>\n<p>" + map.get("fileContent3") + "</p>\n</div>\n</body>\n</html>");
+        }
+
+        fw.flush();
+        fw.close();
+        return html;
+    }
+    public File makeHTML(HashMap<String, String> map, String filename1, String filename2, String filename3) throws IOException{
+        File file1 = new File("./temp/" + filename1);
+        File file2 = new File("./temp/" + filename2);
+        File file3 = new File("./temp/" + filename3);
+        File html = new File("./temp.html");
+        FileWriter fw = new FileWriter(html, false);
+
+        fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>POST N files</h1>\n<div class='card'>\n<h3>" + map.get("filename1") + "</h3>\n<p>" + map.get("fileContent1") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename2") + "</h3>\n<p>" + map.get("fileContent2") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename3") + "</h3>\n<p>" + map.get("fileContent3") + "</p>\n</div>\n</body>\n</html>");
 
         fw.flush();
         fw.close();
@@ -232,7 +309,10 @@ public class ServerThread extends Thread {
         }
         return fileData;
     }
-    
+
+   
+
+    //not using..
     public String imageType(String content){
         String[] imageTypes = {"jpg", "jpeg", "bmp", "gif", "png", "ico", "svg", "webp"};
         String result="";
