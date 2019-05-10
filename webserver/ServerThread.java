@@ -81,7 +81,7 @@ public class ServerThread extends Thread {
                     response = responseBuilder("200", "POST", req.get("filename"), fileLength, file);
             }
             //response builder
-            if(!req.get("method").equals("POST")){
+            if(!req.get("method").equals("POST")){ // all GET methos will be here
                 outToClient.writeBytes(response);
                 outToClient.writeBytes("\r\n");
                 if(req.get("file").equals("200") && req.get("method").equals("GET")){
@@ -95,30 +95,33 @@ public class ServerThread extends Thread {
                     outToClient.write(fileData, 0, fileLength);
                 }
             }
-            
+
+            //For POST method
             else{
                 String readBody="";
                 HashMap<String, String> bodyMap = new HashMap <String, String>();
                 if(req.get("method").equals("POST") && req.get("file").equals("200")){
-                    if(map.get("Content-Type").contains("boundary=")){//for Test
+                    
+                    if(map.get("Content-Type").contains("boundary=")){//for Test post many files. But only for text files yet
                         index = map.get("Content-Type").indexOf("=");
-                        String boundary = map.get("Content-Type").substring(index+1);    
+                        String boundary = map.get("Content-Type").substring(index+1);//for store boundary    
                         bodyMap.put("postType", "2");
                         bodyMap.put("boundary", "--" + boundary);
                         //System.out.println(boundary);
                         
-                        int fileflag = 0;
-                        int lineflag = 3;
-                        String temp = "";
+                        int fileflag = 0; // distinguish file is new or elder
+                        int lineflag = 3; // to read file start line
+                        String temp = ""; // using after finish read files
                         index = 0;
-                        String fileContent = "";
+                        String fileContent = ""; // for read file content
+                        String filetype = ""; // for distinguish file mime type
 
                         while((readBody = inFromClient.readLine())!= null){
                             
-                            if(readBody.equals("--" + boundary)){//when boundary read, new file is starting.
+                            if(readBody.contains("--" + boundary)){//when boundary read, new file is starting.
                                 if(fileflag != 0){
-                                    //File newFile = new File(filetype);
-
+                                    bodyMap.put("fileContent" + fileflag, fileContent); // for store textFile
+                                    bodyMap.put("filename" + fileflag, filetype); //for store name of textfile
                                 }
                                 fileflag++;
                                 lineflag = 3; // to read file start line
@@ -126,10 +129,9 @@ public class ServerThread extends Thread {
                             }
 
                             if((index = readBody.indexOf("filename=")) != -1){
-                                String filetype = readBody.substring(index + 9);
+                                filetype = readBody.substring(index + 9);
                                 //System.out.println("@@@ " + filetype);
-                                temp = mimetypeDetect(filetype);
-                                
+                                temp = mimetypeDetect(filetype); //not using..
                             } 
                             if(lineflag <= 0){
                                 fileContent += readBody;
@@ -140,11 +142,20 @@ public class ServerThread extends Thread {
                             //after reading body, how can we write the file to browser? 
 
 
-                            if(readBody.equals("--" + boundary + "--")){
+                            if(readBody.contains("--" + boundary + "--")){
+                                bodyMap.put("postType", "2");
+                                File newHtml = makeHTML(bodyMap);
+                                int fileL = (int)newHtml.length();
+                                byte[] fileData = fileRead(newHtml, fileL);
+
+                                outToClient.writeBytes("HTTP/1.1 200 OK\r\nContent-Length: "+ newHtml.length()+"\r\nDate: "+today+"\r\n"+mimetypeDetect(filetype)+"\r\n");
+                                
+                                outToClient.write(fileData, 0, fileL);
+
                                 break;
                             }      
 
-                            bodyMap.put("postType", "2");
+                            
                             System.out.println(readBody);
                         }
                     }
@@ -195,7 +206,11 @@ public class ServerThread extends Thread {
         String url = map.get("url");
         File html = new File("./temp.html");
         FileWriter fw = new FileWriter(html, false);
-        fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>New</h1>\n<div class='card'>\n<h3>" + name + "</h3>\n<img src=" + url + " alt=" + name + " class='playerPic'>\n</div>\n</body>\n</html>");
+        if(map.get("postType").equals("1"))
+            fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>New</h1>\n<div class='card'>\n<h3>" + name + "</h3>\n<img src=" + url + " alt=" + name + " class='playerPic'>\n</div>\n</body>\n</html>");
+        else if(map.get("postType").equals("2")){
+            fw.write("<html>\n<head>\n<link rel='stylesheet' href='./css/styles.css' type='text/css'>\n</head>\n<body>\n<h1>POST N files</h1>\n<div class='card'>\n<h3>" + map.get("filename1") + "</h3>\n<p>" + map.get("fileContent1") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename2") + "</h3>\n<p>" + map.get("fileContent2") + "</p>\n</div><div class='card'>\n<h3>" + map.get("filename3") + "</h3>\n<p>" + map.get("fileContent3") + "</p>\n</div>\n</body>\n</html>");
+        }
 
         fw.flush();
         fw.close();

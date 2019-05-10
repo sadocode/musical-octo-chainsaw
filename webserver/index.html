@@ -40,13 +40,28 @@
     <p>
     <form action="http://localhost:8000" method="post" enctype="multipart/form-data">
       <!--<input name="filename1" type="text" value="">-->
-      <input name="file1" type="file" accept="image/*" onchange="fileCheck(this)">
+      <!--<input name="file1" type="file" accept="image/*" onchange="imageFileCheck(this)">-->
       <!--<input name="filename2" type="text" value="">-->
-      <input name="file2" type="file" accept="image/*" onchange="fileCheck(this)"> 
+      <!--<input name="file2" type="file" accept="image/*" onchange="imageFileCheck(this)">--> 
+      <input name="Textfile1" type="file" accept="text/*" onchange="textFileCheck(this)">
+      <input name="Textfile2" type="file" accept="text/*" onchange="textFileCheck(this)">
+      <input name="Textfile3" type="file" accept="text/*" onchange="textFileCheck(this)">
       <button type="submit">전송</button>
     </form>
     <script>
-      function fileCheck(obj){
+      function textFileCheck(obj){
+        var pathpoint = obj.value.lastIndexOf('.');
+         var filepoint = obj.value.substring(pathpoint+1, obj.length);
+        var filetype = filepoint.toLowerCase();
+        var check_file_type = ['txt'];
+        if(check_file_type.indexOf(filetype)==-1){
+          alert('txt 파일만 선택 가능');
+          parentObj = obj.parentNode;
+          node = parentObj.replaceChild(obj.cloneNode(true), obj);
+          return false;
+        }
+      }
+      function imageFileCheck(obj){
         var pathpoint = obj.value.lastIndexOf('.');
         var filepoint = obj.value.substring(pathpoint+1, obj.length);
         var filetype = filepoint.toLowerCase();
