@@ -18,6 +18,7 @@ import java.util.Base64;
 import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;    // for Image parsing
 import java.io.FileOutputStream;
+import java.io.InputStream;
 
 public class ServerThread extends Thread {
     private static final String webRoute = ".";
@@ -30,11 +31,16 @@ public class ServerThread extends Thread {
     public void run(){
         System.out.println("Thread Created");
         BufferedReader inFromClient = null;
+        InputStream inputRead1 = null;
+        InputStreamReader inputRead2 = null;
         DataOutputStream outToClient = null;
         Date today = new Date();
         int postType = 1;
         try {
-            inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            inputRead1 = socket.getInputStream();
+            inputRead2 = new InputStreamReader(inputRead1);
+            inFromClient = new BufferedReader(inputRead2);
+            //inFromClient = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             outToClient = new DataOutputStream(socket.getOutputStream());
             System.out.printf("New Client Connect! Connected IP : %s, Port : %d\n", socket.getInetAddress(), socket.getPort());
             
@@ -89,17 +95,12 @@ public class ServerThread extends Thread {
                 outToClient.writeBytes(response);
                 outToClient.writeBytes("\r\n");
                 if(req.get("file").equals("200") && req.get("method").equals("GET")){
-                /*
-                FileInputStream fis = new FileInputStream(file);
-                byte[] fileData = new byte[fileLength];
-                fis.read(fileData);
-                outToClient.write(fileData, 0, fileLength);
-                */
+                
                     byte[] fileData = fileRead(file, fileLength);
                     outToClient.write(fileData, 0, fileLength);
                 }
             }
-
+            
 
             //<For POST Request>
             String readBody="";
@@ -108,15 +109,52 @@ public class ServerThread extends Thread {
             String fileContent ="";
             int numberflag = 0;
             int fileflag = 0;
+
+            char smallBuff;
+            int dataOfCharacter;
             HashMap<String, String> bodyMap = new HashMap <String, String>();
             if(req.get("method").equals("POST") && req.get("file").equals("200")){
-                    
+                System.out.println("@@");    
                 if(map.get("Content-Type").contains("boundary=")){//for Test post many files. But only for text files yet
                     index = map.get("Content-Type").indexOf("=");
                     String boundary = map.get("Content-Type").substring(index+1);//for store boundary    
                     bodyMap.put("postType", "2");
                     bodyMap.put("boundary", "--" + boundary);
+                    System.out.println("##");
 
+                    /*
+                    //For Test4
+                    byte[] bigBuff = new byte[2048];
+                    int dataSize = 0;
+                    int len = -1;
+
+                    while((len = inputRead1.read()) > 0){
+                        bigBuff[dataSize] = (byte)len;
+                        dataSize++;
+                        System.out.println("&&");
+                        System.out.println(bigBuff.toString());
+                    }
+                    System.out.println("**");
+                    System.out.println(bigBuff.toString());
+                    */
+                    /*
+                    //For Test3
+                    while((dataOfCharacter=inputRead1.read()) != -1){
+                        smallBuff = (char)dataOfCharacter;
+                        System.out.print(smallBuff);
+                    }
+                    */
+
+
+
+                    /*//For Test2
+                    while((dataOfCharacter=inFromClient.read()) != -1){
+                        smallBuff = (char)dataOfCharacter;
+                        System.out.print(smallBuff);
+                    }
+                    */
+
+                    //(v1.1.0)
                     while((readBody = inFromClient.readLine())!= null){
                         System.out.println(readBody);
                         if(readBody.contains(bodyMap.get("boundary"))){
