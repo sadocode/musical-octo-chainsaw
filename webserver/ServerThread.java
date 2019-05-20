@@ -19,6 +19,7 @@ import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;    // for Image parsing
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 
 public class ServerThread extends Thread {
     private static final String webRoute = ".";
@@ -35,8 +36,9 @@ public class ServerThread extends Thread {
         DataOutputStream outToClient = null;
         Date today = new Date();
         int postType = 1;
-
+        int timeout = 3000;
         try {
+            socket.setSoTimeout(timeout);
             inputRead = socket.getInputStream();
             outToClient = new DataOutputStream(socket.getOutputStream());
             System.out.printf("New Client Connect! Connected IP : %s, Port : %d\n", socket.getInetAddress(), socket.getPort());
@@ -44,16 +46,26 @@ public class ServerThread extends Thread {
             byte[] bigBuffer = new byte[4096];
             byte[] smallBuffer;
             int dataSize = 0;
+            int len;
 
-            while((int len = inputRead.read()) > 0){
+
+            dataSize = inputRead.read(bigBuffer, 0, 2000);
+            
+            /*
+            while((len = inputRead.read(bigBuffer)) > 0){
                 bigBuffer[dataSize] = (byte)len;
                 dataSize++;
-
+                System.out.println(bigBuffer[2]);
                 // implement time over
-                if(){
-
-                }
+                // if() date check. ->timeout
             }
+            */
+            smallBuffer = new byte[dataSize];
+            System.arraycopy(bigBuffer, 0, smallBuffer, 0, dataSize);
+            HashMap<String, String> map = rq(smallBuffer);
+            //System.out.println(new String(smallBuffer, "utf-8"));
+
+
 
 
 
@@ -71,10 +83,11 @@ public class ServerThread extends Thread {
         request headers are in Hashmap rq
         request body read in an another method
     */
-    public HashMap<String, String> rq(byte[] req){
+    public HashMap<String, String> rq(byte[] req) throws UnsupportedEncodingException{
         byte[] request = new byte[req.length];
         System.arraycopy(req, 0, request, 0, req.length);
         HashMap<String, String> map = new HashMap<String,String>();
+        
         try {
             /*
                 indexStart, indexEnd => check new line
@@ -97,16 +110,17 @@ public class ServerThread extends Thread {
             int byteCheck = 0;
             byte[] lineByte;
             
+
+            
             for(int i = 0; i < request.length; i++){
                 
-
                 if(newLine == true){
 
                     //store byte[] lineByte to readLine
                     lineByte = new byte[byteCheck];
                     System.arraycopy(request, indexStart, lineByte, 0, byteCheck);
-                    readLine += new String(lineByte);
-
+                    readLine = new String(lineByte, "utf-8");
+                    System.out.println(readLine);
                     //only for first line of request header
                     if(lineNumber == 1){
                         st = new StringTokenizer(readLine);
@@ -126,49 +140,40 @@ public class ServerThread extends Thread {
                     if(readLine.contains("boundary=")){
                         index = map.get("Content-Type").indexOf("=");
                         boundary = map.get("Content-Type").substring(index +1);
-                        // @@@Didn't implement post method!!!!
+                        // @@@Didn't implement post method yet!!!!
                     }
 
                     // reset line offsets
                     byteCheck = 0;
-                    indexStart = i + 4;
+                    indexStart = i + 1;
+                    
                 }
 
-                
-                
-                
                 byteCheck++;
                 newLine = false;
                 
                 //if \r\n checked
-                if(request[i] == 0x5C && request[i+1] ==0x72 && request[i+2] == 0x5C && request[i+3] == 0x6E){                  
-                    byteCheck += 3;
-
-                    /*
-                    readLine += (char)request[i+1];//readLine += new String(request[i+1]);
-                    readLine += new String(request[i+2]);
-                    readLine += new String(request[i+3]);
-                    */
-
-                    if(i + 4 == request.length){ //finish of the request!!
+                if(request[i] == 13 && request[i+1] ==10){                  
+                    byteCheck++;
+                    if(i + 1 == request.length){ //finish of the request!!
                         // all last line of requests is '\r\n'. we don't have to store it. 
                         break;
                     } 
                     else 
                     {//only line finished. not all of the request
-                        
-                        i += 3;
+                        i++;
                         newLine = true;
                         lineNumber++;
-
                     } 
                 }
-            }
+            }//for
+            
         } catch(Exception e){
             System.out.println("Exception : rq");
         } finally {
-            HashMap<String, String> newMap = requestParser(map);
-            return newMap;
+            return map;
+            //HashMap<String, String> newMap = requestParser(map);
+            //return newMap;
         }        
     }
 
