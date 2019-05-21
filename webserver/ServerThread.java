@@ -43,14 +43,14 @@ public class ServerThread extends Thread {
             outToClient = new DataOutputStream(socket.getOutputStream());
             System.out.printf("New Client Connect! Connected IP : %s, Port : %d\n", socket.getInetAddress(), socket.getPort());
             
-            byte[] bigBuffer = new byte[4096];
+            byte[] bigBuffer = new byte[10000001];
             byte[] smallBuffer;
             int dataSize = 0;
             int len;
 
 
-            dataSize = inputRead.read(bigBuffer, 0, 2000);
-            
+            dataSize = inputRead.read(bigBuffer, 0, 10000000);
+            System.out.println(dataSize);
             /*
             while((len = inputRead.read(bigBuffer)) > 0){
                 bigBuffer[dataSize] = (byte)len;
@@ -62,8 +62,46 @@ public class ServerThread extends Thread {
             */
             smallBuffer = new byte[dataSize];
             System.arraycopy(bigBuffer, 0, smallBuffer, 0, dataSize);
-            HashMap<String, String> map = rq(smallBuffer);
-            //System.out.println(new String(smallBuffer, "utf-8"));
+            HashMap<String, String> req = rq(smallBuffer);
+            
+            File file = new File(req.get("filename"));
+            int fileLength = (int)file.length();
+
+            //response builder
+            String response ="";
+            if(req.get("method").equals("405")){
+                response = responseBuilder("405");
+            } else if(req.get("filename").equals("400")){
+                response = responseBuilder("400");
+            } else if(req.get("file").equals("404")){
+                response = responseBuilder("404");
+            } else if(req.get("file").equals("304")){
+                if(req.get("method").equals("GET"))
+                    response = responseBuilder("304", "GET", req.get("filename"), fileLength, file);
+                else
+                    response = responseBuilder("304", "POST", req.get("filename"), fileLength, file);
+            } else{
+                if(req.get("method").equals("GET"))
+                    response = responseBuilder("200", "GET", req.get("filename"), fileLength, file);
+                else
+                    response = responseBuilder("200", "POST", req.get("filename"), fileLength, file);
+            }
+            //response builder
+
+            if(req.get("method").equals("GET")){ // all GET methos will be here
+                outToClient.writeBytes(response);
+                outToClient.writeBytes("\r\n");
+                if(req.get("file").equals("200") && req.get("method").equals("GET")){
+                
+                    byte[] fileData = fileRead(file, fileLength);
+                    outToClient.write(fileData, 0, fileLength);
+                }
+            } 
+
+
+
+
+
 
 
 
@@ -87,17 +125,18 @@ public class ServerThread extends Thread {
         byte[] request = new byte[req.length];
         System.arraycopy(req, 0, request, 0, req.length);
         HashMap<String, String> map = new HashMap<String,String>();
-        
+        ReadBody rb;
         try {
             /*
-                indexStart, indexEnd => check new line
+                indexStart => check new line bit
                 lineNumber => set line numbers
                 newLine => if line ended, newLine becomes true
-                st => for store request headers
+                st => for tokenizing first line of request headers
                 index => temp variable for index
-                methodDetect => 
                 boundary => store boundary.
                 byteCheck => check byte number of the line
+                lineByte => store bytes
+                readLine => readL
             */
             int indexStart =0;
             String readLine = "";
@@ -105,11 +144,10 @@ public class ServerThread extends Thread {
             boolean newLine = false;
             StringTokenizer st;
             int index;
-            int methodDetect = 0;
             String boundary = "";
             int byteCheck = 0;
             byte[] lineByte;
-            
+            boolean boundaryFlag = false; 
 
             
             for(int i = 0; i < request.length; i++){
@@ -120,7 +158,8 @@ public class ServerThread extends Thread {
                     lineByte = new byte[byteCheck];
                     System.arraycopy(request, indexStart, lineByte, 0, byteCheck);
                     readLine = new String(lineByte, "utf-8");
-                    System.out.println(readLine);
+                    //System.out.print(readLine);
+
                     //only for first line of request header
                     if(lineNumber == 1){
                         st = new StringTokenizer(readLine);
@@ -139,13 +178,30 @@ public class ServerThread extends Thread {
                     //when the method of request is post
                     if(readLine.contains("boundary=")){
                         index = map.get("Content-Type").indexOf("=");
-                        boundary = map.get("Content-Type").substring(index +1);
+                        boundary = "--" + map.get("Content-Type").substring(index +1);
+                        map.put("boundary", boundary);
                         // @@@Didn't implement post method yet!!!!
                     }
 
+                    if(readLine.equals(boundary)){
+                        //lineByte = new byte[request.length - i-2 + byteCheck];
+                        lineByte = new byte[request.length - indexStart];
+                        System.arraycopy(request, indexStart, lineByte, 0, lineByte.length);
+                        rb = new ReadBody(lineByte, map.get("boundary"));
+                        //rb.write();
+                        rb.parsing();
+                        System.out.println("i : "+i + " byteCheck : "+byteCheck + " request.length : "+request.length+" indexStart : "+indexStart+" boundary.length() : "+boundary.length());
+                        break;
+                    }
+                    //if the method is post and last boundary read -> break
+                    
+                    if(map.containsKey("boundary") && readLine == (map.get(boundary) + "--")){
+                        break;
+                    }    
+                    
                     // reset line offsets
                     byteCheck = 0;
-                    indexStart = i + 1;
+                    indexStart = i;
                     
                 }
 
@@ -171,9 +227,9 @@ public class ServerThread extends Thread {
         } catch(Exception e){
             System.out.println("Exception : rq");
         } finally {
-            return map;
-            //HashMap<String, String> newMap = requestParser(map);
-            //return newMap;
+            //return map;
+            HashMap<String, String> newMap = requestParser(map);
+            return newMap;
         }        
     }
 
@@ -198,7 +254,7 @@ public class ServerThread extends Thread {
                     requestParser.put("filename", default_path);
                 }
             }
-            System.out.println("filename : " + requestParser.get("filename"));
+            //System.out.println("filename : " + requestParser.get("filename"));
             if(requestParser.get("filename").contains(" ")){
                 requestParser.put("filename", "400");////////400 BADREQUEST
                 return requestParser;
