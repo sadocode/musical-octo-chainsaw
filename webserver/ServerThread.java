@@ -20,14 +20,18 @@ import java.util.Base64.Encoder;    // for Image parsing
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 public class ServerThread extends Thread {
     private static final String webRoute = ".";
     private static final String default_path = "./index.html";
     private Socket socket;
+    public byte[] smallBuffer;
+    public ReadBody rb;
 
     public ServerThread(Socket socket){
         this.socket = socket;
+        this.smallBuffer = new byte[1];
     }
     
     public void run(){
@@ -36,32 +40,53 @@ public class ServerThread extends Thread {
         DataOutputStream outToClient = null;
         Date today = new Date();
         int postType = 1;
-        int timeout = 3000;
+        int timeout = 1000;
         try {
             socket.setSoTimeout(timeout);
             inputRead = socket.getInputStream();
             outToClient = new DataOutputStream(socket.getOutputStream());
             System.out.printf("New Client Connect! Connected IP : %s, Port : %d\n", socket.getInetAddress(), socket.getPort());
             
-            byte[] bigBuffer = new byte[10000001];
-            byte[] smallBuffer;
+            byte[] bigBuffer = new byte[65536];
+            
             int dataSize = 0;
-            int len;
+            int index = 0;
+            int dataSizeAll = 0;
+            
 
-
-            dataSize = inputRead.read(bigBuffer, 0, 10000000);
-            System.out.println(dataSize);
-            /*
-            while((len = inputRead.read(bigBuffer)) > 0){
-                bigBuffer[dataSize] = (byte)len;
-                dataSize++;
-                System.out.println(bigBuffer[2]);
-                // implement time over
-                // if() date check. ->timeout
-            }
-            */
+            //this one!
+            dataSize = inputRead.read(bigBuffer, 0, 65536);
+            index += dataSize;
             smallBuffer = new byte[dataSize];
             System.arraycopy(bigBuffer, 0, smallBuffer, 0, dataSize);
+            
+
+            /*
+            while(inputRead.available() > 0){
+                dataSize = inputRead.read(bigBuffer, index, 1000000);
+                index += dataSize;
+                System.out.println("dataSize : "+dataSize + " available : "+inputRead.available());
+            }
+            */
+            //have to receive bigger than 65536 bytes
+            /*
+            while(true){            
+                dataSize = inputRead.read(bigBuffer, 0, 65536);
+                dataSizeAll += dataSize;
+                //byte[] tempBuffer = new byte[dataSize];
+                //System.arraycopy(bigBuffer, 0, tempBuffer, 0, dataSize);
+                smallBuffer = new byte[dataSize];
+                System.arraycopy(bigBuffer, 0, smallBuffer, 0, dataSize);
+                if(dataSizeAll > 100000)
+                    break;
+
+            }
+            */
+
+             
+            
+                      
+            
             HashMap<String, String> req = rq(smallBuffer);
             
             File file = new File(req.get("filename"));
@@ -100,7 +125,7 @@ public class ServerThread extends Thread {
 
 
 
-
+            
 
 
 
@@ -109,7 +134,7 @@ public class ServerThread extends Thread {
 
             socket.close();
         } catch(Exception e){
-            System.out.println("EXCEP");
+            e.printStackTrace(System.out);
         } finally{
 
         }
@@ -125,7 +150,7 @@ public class ServerThread extends Thread {
         byte[] request = new byte[req.length];
         System.arraycopy(req, 0, request, 0, req.length);
         HashMap<String, String> map = new HashMap<String,String>();
-        ReadBody rb;
+        
         try {
             /*
                 indexStart => check new line bit
@@ -190,7 +215,6 @@ public class ServerThread extends Thread {
                         rb = new ReadBody(lineByte, map.get("boundary"));
                         //rb.write();
                         rb.parsing();
-                        System.out.println("i : "+i + " byteCheck : "+byteCheck + " request.length : "+request.length+" indexStart : "+indexStart+" boundary.length() : "+boundary.length());
                         break;
                     }
                     //if the method is post and last boundary read -> break
@@ -223,9 +247,13 @@ public class ServerThread extends Thread {
                     } 
                 }
             }//for
-            
+            int l = rb.getFileCount();
+            ArrayList<String> a = rb.getFiles();
+            for(int i = 0; i < l; i++)
+                System.out.println(a.get(i));
+
         } catch(Exception e){
-            System.out.println("Exception : rq");
+            e.printStackTrace(System.out);
         } finally {
             //return map;
             HashMap<String, String> newMap = requestParser(map);

@@ -19,6 +19,13 @@ POST에서 이미지를 받을 경우
 <v1.0.3 계획>
 request의 Body 부분을 전부 byte로 받음.
 > image, text 가리지 않고 한 가지 방법으로 처리하기 위해서
+
 > 5/17 아직 수정중..
+
 > 5/20 bit로 받기 성공. String 변환 좀더 생각
+
 > 5/21 ReadBody.java, MakeFile.java 추가. 이미지 받는부분 조금만 더 다듬으면 됨.
+
+> 5/22 RequestParser.java ResponseBuilder.java, ByteProcessing.java 추가, NewServerThread.java 수정.     객체지향화 중.  그리고 이미지 이제 수신 잘 됨. 60KB 이하는 다 됨.
+
+

@@ -29,6 +29,14 @@ public class MakeFile{
 	private String filetype = "";
 	private File newFile;
 
+	/**
+		@param dof
+			file bytes
+		@param fn
+			filename
+		@param ft
+			filetype
+	*/
 	public MakeFile(byte[] dof, String fn, String ft)throws IOException{
 		this.filename = fn;
 		this.filePath = "./temp/" + this.filename;
@@ -37,27 +45,37 @@ public class MakeFile{
 		System.arraycopy(dof, 0, dataOfFile, 0, dof.length);
 	}
 
-	public File detectFileType() throws IOException{
+	/**
+		@return this.newFile
+	*/
+	public File newFile() throws IOException{
 		String[] imageTypes = {"jpg", "ico", "png", "jpeg", "bmp"};
-		File file;
-		if(Arrays.asList(imageTypes).contains(this.filetype))
-			file = imageFile();
+		if(Arrays.asList(imageTypes).contains(filetype))
+			newFile = imageFile();
 		else 
-			file = textFile();
-		return file;
+			newFile = textFile();
+		return newFile;
 	}
 
+	/**
+		make imageFile
+		@return image type file 
+	*/
 	public File imageFile() throws IOException{
-		File file = new File(this.filePath);
-		System.out.println(filetype);
-		FileOutputStream fos = new FileOutputStream(this.filePath);
-		fos.write(this.dataOfFile);
+		File file = new File(filePath);
+		FileOutputStream fos = new FileOutputStream(filePath);
+		fos.write(dataOfFile);
 		fos.flush();
 		fos.close();
 		return file;
 	}
+
+	/**
+		make textFile
+		@return text type file 
+	*/
 	public File textFile() throws IOException{
 		System.out.println("text");
-		return this.newFile;
+		return newFile;
 	}
 }
