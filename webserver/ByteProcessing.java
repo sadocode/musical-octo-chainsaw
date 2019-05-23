@@ -26,14 +26,23 @@ public class ByteProcessing{
 	private byte[] request;
 	private String method;
 	private String filePath;
+	private String boundary;
 	private HashMap<String, String> requestHeaders;
+	private ReadBody rb;
 
 	public ByteProcessing(byte[] req){
 		this.requestHeaders = new HashMap<String, String>();
 		this.method = "";
 		this.filePath = "";
+		this.boundary = "";
 		this.request = new byte[req.length];
 		System.arraycopy(req, 0, request, 0, req.length);
+	}
+	public ReadBody getReadBody(){
+		return rb;
+	}
+	public String getBoundary(){
+		return boundary;
 	}
 	public String getFilePath(){
 		return filePath;
@@ -52,22 +61,20 @@ public class ByteProcessing{
 			boolean newLine = false;
 			StringTokenizer st;
 			int index;
-			String boundary = "";
 			int byteCheck = 0;
 			byte[] lineByte;
-
+			
 			for(int i = 0; i < request.length; i++){
                 
                 if(newLine == true){
                     lineByte = new byte[byteCheck];
                     System.arraycopy(request, indexStart, lineByte, 0, byteCheck);
-                    readLine = new String(lineByte, "utf-8");
-                    //System.out.print(readLine);
+                    readLine = new String(lineByte, "utf-8");        
 
                     //only for first line of request header
                     if(lineNumber == 1){
                         st = new StringTokenizer(readLine);                 
-                        method = st.nextToken();
+                        method = st.nextToken();                      
                         filePath = st.nextToken();
                     }
 
@@ -88,6 +95,7 @@ public class ByteProcessing{
                     if(readLine.equals(boundary)){
                         lineByte = new byte[request.length - indexStart];
                         System.arraycopy(request, indexStart, lineByte, 0, lineByte.length);
+                        rb = new ReadBody(lineByte, boundary);
                         break;
                     }
                     //if the method is post and last boundary read -> break

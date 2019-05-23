@@ -25,19 +25,23 @@ import java.util.ArrayList;
 public class RequestParser{
 	
 	private HashMap<String, String> requestHeaders;
-	private ByteProcessing bp;
 	private String code;
 	private String method;
 	private File filePath;
 	private static String default_path = "./index.html";
 	private String filePathToString;
 
-	public RequestParser(ByteProcessing bpp){
+	private String bpMethod;
+	private String bpFilePath;
+
+	public RequestParser(HashMap<String, String> reqheaders){
 		this.code = "";
 		this.method = "";
 		this.filePathToString ="";
-		this.bp = bpp;
-		this.requestHeaders = bpp.getRequestHeaders();
+		this.requestHeaders = reqheaders;
+	}
+	public HashMap<String, String> getRequestHeaders(){
+		return requestHeaders;
 	}
 	public String getFilePathToString(){
 		return filePathToString;
@@ -51,24 +55,28 @@ public class RequestParser{
 	public File getFilePath(){
 		return filePath;
 	}
+	public void setBPVariables(String method, String filePath){
+		this.bpMethod = method;
+		this.bpFilePath = filePath;
+	}
 	public void parsing(){
 		try{
-			if(bp.getMethod().equals("GET"))
+			if(bpMethod.equals("GET"))
 				method = "GET";
-			else if(bp.getMethod().equals("POST"))
+			else if(bpMethod.equals("POST"))
 				method = "POST";
 			else{
 				code = "405";
 			}
 
-			if(bp.getFilePath().contains(" ")){
+			if(bpFilePath.contains(" ")){
 				code = "400";
 			}
 
-			if(bp.getFilePath().startsWith("/")){
-				if(bp.getFilePath().length() > 1){
-					filePath = new File(bp.getFilePath().substring(1));
-					filePathToString = bp.getFilePath().substring(1);
+			if(bpFilePath.startsWith("/")){
+				if(bpFilePath.length() > 1){
+					filePath = new File(bpFilePath.substring(1));
+					filePathToString = bpFilePath.substring(1);
 				} else {
 					filePath = new File(default_path);
 					filePathToString = default_path;

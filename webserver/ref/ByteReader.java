@@ -1,5 +1,3 @@
-package com.yna.commons.db.service.test;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
