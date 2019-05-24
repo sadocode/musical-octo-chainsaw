@@ -11,11 +11,11 @@ public class Webtest
         System.out.println("WebServer Socket Created");
 
         Socket socket;
-        ServerThread serverThread;
+        NewServerThread serverThread;
         
         while((socket = serverSocket.accept()) != null)
         {
-            serverThread = new ServerThread(socket);
+            serverThread = new NewServerThread(socket);
             serverThread.start();
         }
     }
