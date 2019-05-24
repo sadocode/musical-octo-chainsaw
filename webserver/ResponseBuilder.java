@@ -37,6 +37,9 @@ public class ResponseBuilder{
 	public String getResponse(){
 		return response;
 	}
+	public void setFile(File f){
+		this.file = f;
+	}
 	public void build(){
 		if(rp.getCode().equals("405")){
 			System.out.println("405 Method Not Allowed");

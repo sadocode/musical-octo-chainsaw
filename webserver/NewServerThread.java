@@ -117,16 +117,16 @@ public class NewServerThread extends Thread{
             } else if(rp.getMethod().equals("POST")){
                 MakeHTML mhtml = new MakeHTML(files, fileCount);
                 File html = mhtml.HTMLFile();
-                outToClient.writeBytes(response);
+                responsebuilder.setFile(html);
+                responsebuilder.build();
+
+                outToClient.writeBytes(responsebuilder.getResponse());
                 outToClient.writeBytes("\r\n");
                 fr = new FileRead(html);
                 fr.fread();
                 outToClient.write(fr.getFileData(), 0, fr.getFileLength());
                 System.out.println("@@@html.length:" + html.length());
             }
-
-
-
 
             socket.close();
         } catch(Exception e){
