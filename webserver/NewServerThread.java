@@ -21,7 +21,6 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.io.BufferedInputStream;
 
 public class NewServerThread extends Thread{
     private static final String default_path = "./index.html";
@@ -38,12 +37,9 @@ public class NewServerThread extends Thread{
         InputStream inputRead = null;
         DataOutputStream outToClient = null;
         Date today = new Date();
-        int postType = 1;
-        int timeout = 100;
         byte[] bigBuffer = new byte[65536];
 
         try{
-            //socket.setSoTimeout(timeout);
             
             inputRead = socket.getInputStream();
             outToClient = new DataOutputStream(socket.getOutputStream());
@@ -54,7 +50,7 @@ public class NewServerThread extends Thread{
             int dataSizeAll = 0;
             int readCount = 0;
             
-            
+            /*
             while((dataSize = inputRead.read(bigBuffer, 0, 65536)) > 0){
                 
                 if(readCount == 0 && dataSize < 65536 && dataSize > 0){
@@ -70,18 +66,47 @@ public class NewServerThread extends Thread{
                 }
                 readCount++;
                 dataSizeAll += dataSize;
-                
-
             }
             
-            
-            /*
-            dataSize = inputRead.read(bigBuffer, 0, 65536);
-            smallBuffer = new byte[dataSize];
-            System.arraycopy(bigBuffer, 0, smallBuffer, 0, dataSize);
             */
-            
 
+            byte[] tempBuffer = new byte[10];
+            int findMethod = inputRead.read(tempBuffer, 0, 10);
+
+            if(new String(tempBuffer, "utf-8").contains("GET")){
+                dataSize = inputRead.read(bigBuffer, 0, 65536);
+                smallBuffer = new byte[findMethod + dataSize];
+                System.arraycopy(tempBuffer, 0, smallBuffer, 0, findMethod);
+                System.arraycopy(bigBuffer, 0, smallBuffer, findMethod, dataSize);
+            }
+            //if method is post, we don't know how much bytes come to server.
+            //it can be over 65536. So use ByteRead class
+            else{
+                byte[] tempBuffer2 = new byte[300];
+                int findBoundary = inputRead.read(tempBuffer2, 0, 300);
+                smallBuffer = new byte[findMethod + findBoundary + dataSize];
+                System.arraycopy(tempBuffer, 0, smallBuffer, 0, findMethod);
+                System.arraycopy(tempBuffer2, 0, smallBuffer, findMethod, findBoundary);
+                
+                String tempString = new String(tempBuffer2, "utf-8");
+                index = tempString.indexOf("boundary=") + 9;
+                String boundary = tempString.substring(index);
+                index = boundary.indexOf("\r\n");
+                boundary = "--" + boundary.substring(0, index);
+                
+                ByteReader br = new ByteReader(boundary.getBytes("utf-8"));
+                dataSize = br.read(inputRead);
+
+                byte[] buff = new byte[dataSize];
+                System.arraycopy(br.getBytes(), 0, buff, 0, dataSize);
+                
+                smallBuffer = new byte[findMethod + findBoundary + dataSize];
+                System.arraycopy(tempBuffer, 0, smallBuffer, 0, findMethod);
+                System.arraycopy(tempBuffer2, 0, smallBuffer, findMethod, findBoundary);
+                System.arraycopy(buff, 0, smallBuffer, findMethod + findBoundary, dataSize);
+            }
+            
+            System.out.print(new String(smallBuffer, "utf-8"));
             ByteProcessing bp = new ByteProcessing(smallBuffer);
             bp.processBytes();
 

@@ -6,7 +6,7 @@ public class Webtest
 {
     public static void main(String args[]) throws Exception
     {
-        int port = 8000;
+        int port = 8080;
         ServerSocket serverSocket = new ServerSocket(port);
         System.out.println("WebServer Socket Created");
 

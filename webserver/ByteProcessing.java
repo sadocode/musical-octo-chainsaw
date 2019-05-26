@@ -70,7 +70,7 @@ public class ByteProcessing{
                     lineByte = new byte[byteCheck];
                     System.arraycopy(request, indexStart, lineByte, 0, byteCheck);
                     readLine = new String(lineByte, "utf-8");        
-                    
+                    //System.out.print(readLine);
                     //only for first line of request header
                     if(lineNumber == 1){
                         st = new StringTokenizer(readLine);                 
