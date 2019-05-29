@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>webserver</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./css/styles.css" type="text/css">
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+  </head>
+  <body>
+    <h1>WebServer</h1>
+    <div class="card">
+    	<h3>Ozil</h3>
+      <img src="./images/ozil.jpg" alt="ozil" class="playerPic">
+      <p>link : <a href="https://www.google.com/search?q=ozil&oq=ozil&aqs=chrome.0.69i59l2j0l4.2461j0j7&sourceid=chrome&ie=UTF-8">Ozil link</a></p>
+    </div>
+    <div class="card">
+      <h3>Ramsey</h3>
+      <img src="./images/ramsey.jpg" alt="ramsey" class="playerPic">
+      <p>link : <a href="./temp/temp.html">Ramsey link</a></p>
+    </div>
+    <div id="showtext" style="height:200px;">
+      <img id="img" src="" >
+      <div id="source"></div>
+    </div>
+    <p>
+    <form action="http://localhost:9000" method="post" enctype="multipart/form-data">
+      <input name="file1" id="file1"type="file" accept="image/*"><!--onchange="imageFileCheck(this)">-->
+      <!--<input id="filetext1" type="text" name="filetext1">-->
+      <input name="file2" id="file2" type="file" accept="image/*"><!-- onchange="imageFileCheck(this)">-->
+      <!--<input id="filetext2" type="text" name="filetext2">-->
+      <!--<input name="Textfile1" id="file" type="file" accept="text/*" onchange="textFileCheck(this)">-->
+     
+      <!--<input name="Textfile2" type="file" accept="text/*" onchange="textFileCheck(this)">-->
+      <!--<input name="Textfile3" type="file" accept="text/*" onchange="textFileCheck(this)">-->
+      <button type="submit">전송</button>
+    </form>
+    
+    <script>
+      /*//
+      function readFile(input){
+        if(input.files && input.files[0]){
+          var FR = new FileReader();
+          var name = input.name;
+          FR.onload = function(e){
+            //$('#img').attr("src", e.target.result);
+            //$('#source').text(e.target.result);
+            console.log("hi1");
+            $("#filetext1").val(e.target.result);
+              //$("#file1").val(""); 
+          };
+          FR.readAsDataURL(input.files[0]);
+        }
+
+      }
+      function readFile2(input){
+        if(input.files && input.files[0]){
+          var FR = new FileReader();
+          var name = input.name;
+          FR.onload = function(e){
+            //$('#img').attr("src", e.target.result);
+            //$('#source').text(e.target.result);
+            console.log("hi2");
+            $("#filetext2").val(e.target.result);
+              //$("#file2").val(""); 
+          };
+          FR.readAsDataURL(input.files[0]);
+        }
+      }
+      $(document).ready(function(){
+        $("#file1").change(function(){
+          readFile(this);
+        });
+        $("#file1").trigger("change");
+        $("#file2").change(function(){
+          readFile2(this);
+        });
+        $("#file2").trigger("change");
+      });
+     */
+      function textFileCheck(obj){
+        var pathpoint = obj.value.lastIndexOf('.');
+         var filepoint = obj.value.substring(pathpoint+1, obj.length);
+        var filetype = filepoint.toLowerCase();
+        var check_file_type = ['txt'];
+        if(check_file_type.indexOf(filetype)==-1){
+          alert('txt 파일만 선택 가능');
+          parentObj = obj.parentNode;
+          node = parentObj.replaceChild(obj.cloneNode(true), obj);
+          return false;
+        }
+      }
+      function imageFileCheck(obj){
+        var pathpoint = obj.value.lastIndexOf('.');
+        var filepoint = obj.value.substring(pathpoint+1, obj.length);
+        var filetype = filepoint.toLowerCase();
+        var check_file_type = ['jpg', 'jpeg', 'bmp', 'png', 'gif', 'ico'];
+        if(check_file_type.indexOf(filetype)==-1){
+          alert('이미지 파일만 선택 가능');
+          parentObj = obj.parentNode;
+          node = parentObj.replaceChild(obj.cloneNode(true), obj);
+          return false;
+        }
+      }
+    </script>
+
+
+</body>
+</html>
+  <!--
+  <script>
+    $( "#myForm" ).submit(function( event ) {
+      event.preventDefault();
+  
+      var data = $(this).serializeArray();
+      data = data.concat([{name:"userId",value:1}]);
+  
+      $.post( "//jsonplaceholder.typicode.com/posts", data ).done(function(data ) {
+        console.log( data );
+      });
+    });
+  </script>
+  -->
+    <!--
+    <form>
+      <div>name : <input type="text" name="name" value=""></div>
+      <div>url : <input type="text" name="url" value=""></div>
+      <input type="button" name="but" value="등록"></form>
+    <div id="footer"></div>
+  -->
+  
