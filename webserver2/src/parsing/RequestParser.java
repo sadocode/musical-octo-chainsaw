@@ -1,9 +1,23 @@
 package parsing;
 import java.io.File;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
+
 import java.util.HashMap;
 import java.lang.String;
 import java.util.Map;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+
+import javax.imageio.ImageIO;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 public class RequestParser{
 	
@@ -99,10 +113,42 @@ public class RequestParser{
 	public String getHome() {
 		return this.home;
 	}
+	private String dirMethod() throws IOException{
+		ProcessBuilder pb = new ProcessBuilder("cmd");
+		pb.redirectErrorStream(true);
+		Process p = pb.start();
+		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
+		bw.write("dir\n");
+		bw.flush();
+		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String outputLine = "";
+		StringBuilder outputMessage = new StringBuilder();
+		while((outputLine = br.readLine()) != null) {
+			outputMessage.append(outputLine).append("\r\n");
+			System.out.print(outputLine);
+		}
+		System.out.print(outputMessage);
+		return outputMessage.toString();
+	}
+	private void screenMethod(String filePath) throws AWTException, IOException{
+		if(filePath == null)
+			throw new java.lang.NullPointerException("screenMethod. filePath is null");
+		
+		Date captureTime = new Date();
+		StringBuilder filepath = new StringBuilder(filePath);
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy_MM_dd_kkmmss");
+		filepath.append(sdf.format(captureTime)).append(".bmp");
+
+		Rectangle screenRect = new Rectangle(Toolkit.getDefaultToolkit().getScreenSize());
+		Robot robot = new Robot();
+		BufferedImage capture = robot.createScreenCapture(screenRect);
+		ImageIO.write(capture, "bmp", new File(filepath.toString()));
+	}
 	/**
 	 * setMethodUrl() 이후에 사용이 가능하다.
 	 * setMethodUrl()에서 this.method, this.url, this.filePath가 초기화 되기 때문이다.
 	 * setDefaultPath() 이후에 사용가능. 마찬가지 이유로.
+	 * @return isError  error -> true, 아니면 false 반환
 	 */
 	public void parsing(){
 		boolean isError = false;
@@ -131,6 +177,14 @@ public class RequestParser{
 					isError = true;
 			}
 			
+			if(!isError && "dir".equals(this.url)) {
+				
+			} else if(!isError && "screen".equals(this.url)) {
+				
+			} else if(!isError && "notepad".equals(this.url)) {
+				
+			}
+		
 			
 			if(!isError && this.filePath.exists()){
 				if((this.requestHeaders.get("if-none-match") != null) && this.requestHeaders.get("if-none-match").equals("\""+Long.toString(this.filePath.lastModified()) + "\"")){

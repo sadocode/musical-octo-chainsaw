@@ -2,7 +2,7 @@ package server;
 import java.net.Socket;
 
 import parsing.ByteProcessing;
-import reader.ByteReader;
+import reader.ByteHeaderReader;
 
 import java.io.InputStream;
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class NewServerThread extends Thread{
 			System.out.printf("Connected IP : %s, Port : %d\n", socket.getInetAddress(), socket.getPort());
 			this.socket.setSoTimeout(5000);
 			
-			ByteReader br = new ByteReader();
+			ByteHeaderReader br = new ByteHeaderReader();
 			int size = br.read(is);
 			
 			

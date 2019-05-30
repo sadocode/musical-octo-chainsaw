@@ -7,11 +7,11 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
-public class ByteReader{
+public class ByteHeaderReader{
 	private ByteArrayOutputStream baos;
 	private byte[] checkBuffer;
 	
-	public ByteReader() {
+	public ByteHeaderReader() {
 		this.checkBuffer = setBuffer();
 		this.baos = new ByteArrayOutputStream();
 	}
