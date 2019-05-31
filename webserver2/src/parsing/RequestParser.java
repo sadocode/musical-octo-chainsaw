@@ -2,7 +2,7 @@ package parsing;
 import java.io.File;
 import java.util.Map;
 
-import javax.imageio.ImageIO;
+import reader.CmdReader;
 
 import java.util.HashMap;
 import java.lang.String;
@@ -24,15 +24,19 @@ public class RequestParser{
 	private Map<String, String> requestHeaders;
 	private String code;
 	private String method;
-	private File filePath;
+	private File file;
 	private String url;
 	private String default_path;
 	private String home;
+	
+	private String resultCmd;
+	private boolean isError;
 	
 	public RequestParser(Map<String, String> reqheaders){
 		if(reqheaders == null)
 			throw new java.lang.NullPointerException("reqheaders is null");
 		this.requestHeaders = reqheaders;
+		this.isError = false;
 	}
 	/**
 	 * @return request 헤더를 Map으로 반환한다
@@ -65,9 +69,10 @@ public class RequestParser{
 	 * setMethodUrl(method, url)을 통해 초기화된다.
 	 * @return url을 File로 반환한다.
 	 */
-	public File getFilePath(){
-		return this.filePath;
+	public File getFile(){
+		return this.file;
 	}
+	
 	/**
 	 * method, url을 입력받아 this.method, this.url을 초기화한다.
 	 * @param method
@@ -113,22 +118,8 @@ public class RequestParser{
 	public String getHome() {
 		return this.home;
 	}
-	private String dirMethod() throws IOException{
-		ProcessBuilder pb = new ProcessBuilder("cmd");
-		pb.redirectErrorStream(true);
-		Process p = pb.start();
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()));
-		bw.write("dir\n");
-		bw.flush();
-		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String outputLine = "";
-		StringBuilder outputMessage = new StringBuilder();
-		while((outputLine = br.readLine()) != null) {
-			outputMessage.append(outputLine).append("\r\n");
-			System.out.print(outputLine);
-		}
-		System.out.print(outputMessage);
-		return outputMessage.toString();
+	public boolean getIsError() {
+		return this.isError;
 	}
 	private void screenMethod(String filePath) throws AWTException, IOException{
 		if(filePath == null)
@@ -151,51 +142,58 @@ public class RequestParser{
 	 * @return isError  error -> true, 아니면 false 반환
 	 */
 	public void parsing(){
-		boolean isError = false;
+		this.isError = false;
 		try{
-			if(!"GET".equals(this.getMethod()) || !"POST".equals(this.getMethod())) {
+			
+			if(!("GET".equals(this.getMethod()) || "POST".equals(this.getMethod()))) {
 				this.code = "405";
-				isError = true;
+				this.isError = true;
+				return;
 			}
 
-			if(!isError && this.url.contains(" ")){
+			if(this.url.contains(" ")){
 				this.code = "400";
-				isError = true;						
+				this.isError = true;	
+				return;
 			}
 
-			
-			if(!isError && this.url.startsWith("/")){
+			if(this.url.startsWith("/")){
 				if(this.url.length() > 1){
-					this.url = this.getDefaultPath() + this.url.substring(1);
-					this.filePath = new File(this.getUrl());
+					this.url = this.getDefaultPath() + this.url;
+					this.file = new File(this.getUrl());
 				} else {
-					this.url = this.getDefaultPath() + this.getHome();
-					this.filePath = new File(this.getUrl());
+					this.url = this.getDefaultPath() + "/" + this.getHome();
+					this.file = new File(this.getUrl());
 				}
-			} else if(!isError && !this.url.startsWith("/")){
-					this.code = "400";
-					isError = true;
+			} else {
+				this.code = "400";
+				this.isError = true;
+				return;
 			}
 			
-			if(!isError && "dir".equals(this.url)) {
-				
-			} else if(!isError && "screen".equals(this.url)) {
-				
-			} else if(!isError && "notepad".equals(this.url)) {
-				
-			}
+			if("?dir".equals(this.url) || "?ls".equals(this.url) || "?notepad".equals(this.url)) {
+				CmdReader cr = new CmdReader(this.url);
+				cr.executeCmd();
+				this.resultCmd = cr.getString();
+				this.code = "200";
+				return;
+			} else if("screen".equals(this.url)) {
+				this.screenMethod(this.url);
+				this.code = "200";
+				return;
+			} 
 		
-			
-			if(!isError && this.filePath.exists()){
-				if((this.requestHeaders.get("if-none-match") != null) && this.requestHeaders.get("if-none-match").equals("\""+Long.toString(this.filePath.lastModified()) + "\"")){
+			if(this.file.exists()){
+				if((this.requestHeaders.get("if-none-match") != null) && this.requestHeaders.get("if-none-match").equals("\""+Long.toString(this.file.lastModified()) + "\"")){
 					this.code = "304";
 				} else {
 					this.code = "200";
 				}
-			} else if(!isError && !this.filePath.exists()){
+			} else {
 				this.url = "fileNotFound";
-				this.filePath = new File(this.getUrl());
+				this.file = new File(this.getUrl());
 				this.code = "404";
+				this.isError = true;
 			}
 
 		}catch(Exception e){
