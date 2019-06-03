@@ -6,6 +6,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.StringTokenizer;
 import java.io.IOException;
 
+/**
+ * 
+ * @author yna
+ *
+ */
 public class ByteProcessing {
 	private byte[] request;
 	private Map<String, String> requestHeaders;
@@ -13,7 +18,10 @@ public class ByteProcessing {
 	private String url;
 	private String protocol;
 	private String boundary;
-	
+	/**
+	 * 
+	 * @param request
+	 */
 	public ByteProcessing(byte[] request) {
 		if(request == null || request.length == 0)
 			throw new java.lang.NullPointerException("request parameter of ByteProcessing constructor is null");

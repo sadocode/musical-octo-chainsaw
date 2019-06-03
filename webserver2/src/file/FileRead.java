@@ -28,6 +28,10 @@ public class FileRead{
 	public byte[] getFileData(){
 		return this.fileData;
 	}
+	/**
+	 * FileInputStream을 통해 읽은 파일을 byte[] fileData에 저장한다.
+	 * @throws IOException
+	 */
 	public void fread() throws IOException{
 		try{
 			this.fis = new FileInputStream(this.file);

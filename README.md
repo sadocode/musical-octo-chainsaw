@@ -40,6 +40,7 @@ request의 Body 부분을 전부 byte로 받음.
 
 >아직 구현 X. 백차장님 말씀하신 것 구현중
 
+>6/3. dir, notepad, screenshot 구현 완료. OOP, thread-pool, file io처리 필요
 
 ##test
 

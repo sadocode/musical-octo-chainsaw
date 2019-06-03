@@ -133,7 +133,7 @@ public class ResponseBuilder{
         	this.setResponse(new Date(file.lastModified()));
         	this.setResponse("\r\netag: \"");
         	this.setResponse(file.lastModified());
-        	this.setResponse("\"\r\n");  	
+        	this.setResponse("\r\n\r\n");  	
         }
 
 	}
