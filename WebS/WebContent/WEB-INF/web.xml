@@ -9,4 +9,24 @@
     <welcome-file>default.htm</welcome-file>
     <welcome-file>default.jsp</welcome-file>
   </welcome-file-list>
+  
+  <!-- GetWords.java 으로 이동 -->
+  <servlet>
+  	<servlet-name>GetWords</servlet-name>
+  	<servlet-class>get.GetWords</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>GetWords</servlet-name>
+  	<url-pattern>/GetWords</url-pattern>
+  </servlet-mapping>
+  
+ <!-- PostImages.java로 이동 --> 
+  <servlet>
+  	<servlet-name>PostImages</servlet-name>
+  	<servlet-class>post.PostImages</servlet-class>
+  </servlet>
+  <servlet-mapping>
+  	<servlet-name>PostImages</servlet-name>
+  	<url-pattern>/PostImages</url-pattern>
+  </servlet-mapping>
 </web-app>

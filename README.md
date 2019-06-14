@@ -31,17 +31,27 @@ request의 Body 부분을 전부 byte로 받음.
 
 > 5/22 RequestParser.java ResponseBuilder.java, ByteProcessing.java 추가, NewServerThread.java 수정.     객체지향화 중.  그리고 이미지 이제 수신 잘 됨. 60KB 이하는 다 됨.
 
-###v1.2
+### v1.2
 > 5/24 용량이 큰파일도 수신 성공. 좀만 다듬으면 됨.
 
 
 
-##webserver2
+## webserver2
 
->아직 구현 X. 백차장님 말씀하신 것 구현중
+> 6/3. dir, notepad, screenshot 구현 완료. OOP, thread-pool, file io처리 필요
 
->6/3. dir, notepad, screenshot 구현 완료. OOP, thread-pool, file io처리 필요
+> 6/7 웹서버. 엥간한거 해둠.
+
+## webS
+
+> 톰캣에서 돌아가게 servlet, jsp 만들어둠.
+
+> post말고 get으로 cmd 결과, 스크린샷 결과 보내주는 것 구현해둠.
 
 ##test
 
->test파일 모음
+> test파일 모음
+
+## ChatServer, ChatClient
+
+> 하는 중~~

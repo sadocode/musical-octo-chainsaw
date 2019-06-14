@@ -7,9 +7,22 @@ import java.util.StringTokenizer;
 import java.io.IOException;
 
 /**
+ * <변수>
+ * request
+ * 		socket으로부터 받은 byte
+ * requestHeaders
+ * 		socket으로부터 받은 byte를 헤더 별로 나누어 저장한 값
+ * method
+ * 		request의 method
+ * url
+ * 		request의 url
+ * protocol
+ * 		request의 protocol
+ * boundary
+ * 		request의 boundary. (POST 요청일 경우에만 존재한다)
+ * 
  * 
  * @author yna
- *
  */
 public class ByteProcessing {
 	private byte[] request;
@@ -18,8 +31,10 @@ public class ByteProcessing {
 	private String url;
 	private String protocol;
 	private String boundary;
+	
 	/**
-	 * 
+	 * Socket으로 부터 온 byte를 this.request에 복사
+	 * requestHeaders 초기화
 	 * @param request
 	 */
 	public ByteProcessing(byte[] request) {

@@ -36,7 +36,7 @@ public class ResponsePacket {
 	}
 	public void response(RequestPacket rp)
 	{
-		
+		//requestPacket으로 부터 받은 정보를 가지고 response를 만든다.
 	}
 	public void response(RequestPacket rp, Exception ex)
 	{

@@ -1,18 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
-<%@ page import= "java.util.Properties" %>
-<%@ page import="java.io.FileInputStream" %>
-<%@ page import="java.io.IOException" %>
-<%! public void setEnvironment() 
-{
-	try(FileInputStream fis = new FileInputStream("info.properties")) {
-		this.info = new Properties();
-		this.info.load(fis);
-		this.webRoot = info.getProperty("WEBROOT");
-	} catch(IOException ioe) {
-		ioe.printStackTrace(System.out);
-	}
-} %>
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -37,12 +25,12 @@
     <p>
     <div>
       아무 단어나 입력해보세요!<br>
-      <form action="/WebS/get/GetWords" method="get">
+      <form action="GetWords" method="get">
         <input type="text" name="words">
         <button id="CT" type="submit">보기</button>
       </form>
     </div>
-    <form action="/WebS/post/PostImages" method="post" enctype="multipart/form-data">
+    <form action="PostImages" method="post" enctype="multipart/form-data">
       <input name="file1" id="file1"type="file" accept="image/*">
       <input name="file2" id="file2" type="file" accept="image/*">
       <button type="submit">전송</button>

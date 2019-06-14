@@ -30,8 +30,8 @@ public class CmdReader{
 		this.baos = new ByteArrayOutputStream();
 	}
 	/**
-	 * urlÀ» ¹Þ¾Æ cmd¿¡ ÀÔ·ÂÇÒ °ªÀ» ÃÊ±âÈ­.
-	 * urlÀº /?commandText=dirÃ³·³ /?commandText= À¸·Î ½ÃÀÛµÈ´Ù.
+	 * urlï¿½ï¿½ ï¿½Þ¾ï¿½ cmdï¿½ï¿½ ï¿½Ô·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­.
+	 * urlï¿½ï¿½ /?commandText=dirÃ³ï¿½ï¿½ /?commandText= ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ÛµÈ´ï¿½.
 	 * @param url
 	 * @param default_path
 	 * @throws IOException
@@ -47,15 +47,15 @@ public class CmdReader{
 	}
 	
 	/**
-	 * »ý¼ºÀÚ¿¡¼­ parameter·Î ¹ÞÀº urlÀÌ ¹ÝÈ¯µÈ´Ù. 
+	 * ï¿½ï¿½ï¿½ï¿½ï¿½Ú¿ï¿½ï¿½ï¿½ parameterï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ urlï¿½ï¿½ ï¿½ï¿½È¯ï¿½È´ï¿½. 
 	 * @return url
 	 */
 	public String getUrl() {
 		return this.url.toString();
 	}	
 	/**
-	 * ÀÔ·ÂµÈ typeÀ» ¹ÝÈ¯ÇÑ´Ù.
-	 * dir, notepad, screen ÀÌ ÀÖ´Ù.
+	 * ï¿½Ô·Âµï¿½ typeï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
+	 * dir, notepad, screen ï¿½ï¿½ ï¿½Ö´ï¿½.
 	 * @return wordType
 	 */
 	public String getWordType() {
@@ -63,8 +63,8 @@ public class CmdReader{
 	}
 	
 	/**
-	 * url·Î screenÀÌ ¿ÔÀ» °æ¿ì¿¡¸¸ ÃÊ±âÈ­µÈ´Ù.
-	 * execute()¸¦ ÅëÇØ ÃÊ±âÈ­ µÈ´Ù.
+	 * urlï¿½ï¿½ screenï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ì¿¡ï¿½ï¿½ ï¿½Ê±ï¿½È­ï¿½È´ï¿½.
+	 * execute()ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­ ï¿½È´ï¿½.
 	 * @return screen
 	 */
 	public String getScreen() {
@@ -72,7 +72,7 @@ public class CmdReader{
 	}
 	
 	/**
-	 * ¹«Á¶°Ç execute()¸¦ ÇØ¾ßÁö wordType, baos, screenÀÇ °ªÀÌ ÃÊ±âÈ­µÈ´Ù.
+	 * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ execute()ï¿½ï¿½ ï¿½Ø¾ï¿½ï¿½ï¿½ wordType, baos, screenï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­ï¿½È´ï¿½.
 	 * @throws IOException
 	 * @throws AWTException
 	 */
@@ -91,7 +91,7 @@ public class CmdReader{
 		}
 	}
 	/**
-	 * url·Î screenÀÌ ¿ÔÀ» °æ¿ì, ½ºÅ©¸°¼¦À» Âï´Â ¸Þ¼Òµå.
+	 * urlï¿½ï¿½ screenï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½, ï¿½ï¿½Å©ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½Þ¼Òµï¿½.
 	 * 
 	 * 
 	 * @return screen
@@ -112,8 +112,8 @@ public class CmdReader{
 		return this.screen;
 	}
 	/**
-	 * execute() -> executeCmd() -> cmdUrlWrite() -> read() -> cmdRead() : cmd¸¦ ÀÌ¿ëÇÏ´Â °æ¿ì
-	 * 			 -> screenMethod()										 : screenshotÀ» ÀÌ¿ëÇÏ´Â °æ¿ì
+	 * execute() -> executeCmd() -> cmdUrlWrite() -> read() -> cmdRead() : cmdï¿½ï¿½ ï¿½Ì¿ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½
+	 * 			 -> screenMethod()										 : screenshotï¿½ï¿½ ï¿½Ì¿ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½
 	 * @return
 	 * @throws IOException
 	 */
@@ -124,7 +124,7 @@ public class CmdReader{
 	}
 	
 	/**
-	 * executeCmd()¿¡¼­ »ç¿ëµÈ´Ù.
+	 * executeCmd()ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½È´ï¿½.
 	 * @throws IOException
 	 */
 	private void cmdUrlWrite() throws IOException{
@@ -143,11 +143,11 @@ public class CmdReader{
 	public int read(InputStream is) throws IOException{
 		if(is == null)
 			throw new java.lang.NullPointerException("InputStream from Socket is null");
-		this.baos.reset();
+		//this.baos.reset();
 		return this.cmdRead(is, this.baos);
 	}
 	/**
-	 * cmd¿¡¼­ ÀÐÀº ¹ÙÀÌÆ® ¼ö¸¦ ¹ÝÈ¯ÇÑ´Ù.
+	 * cmdï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 * 
 	 * @param is
 	 * @param os
@@ -159,19 +159,24 @@ public class CmdReader{
 		int offset = 0;
 		int size = 0;
 		byte[] checkBuffer = {13, 10, 13, 10};
-		while(true) {
+		while(true) 
+		{
 			n = is.read();
 			if(n < 0)
 				break;
-			if(checkBuffer[offset] == n) {
+			if(checkBuffer[offset] == n) 
+			{
 				offset++;
-				if(offset == checkBuffer.length) {
+				if(offset == checkBuffer.length) 
+				{
 					size++;
 					os.write(n);
 					offset = 0;
 					break;
 				}
-			} else {
+			} 
+			else 
+			{
 				offset = 0;
 			}
 			size++;
@@ -184,13 +189,15 @@ public class CmdReader{
 		byte[] temp = new byte[100];
 		byte[] path = null;
 		
-		while(true) {
+		while(true) 
+		{
 			n = is.read();
 			if(n < 0)
 				break;
 			if(!finishStorePath)
 				temp[index] = (byte)n;
-			if(!finishStorePath && n == 62) {
+			if(!finishStorePath && n == 62) 
+			{
 				finishStorePath = true;
 				path = new byte[index + 1];
 				System.arraycopy(temp, 0, path, 0, index + 1);
@@ -200,15 +207,20 @@ public class CmdReader{
 				offset = 0;
 				continue;
 			}
-			if(finishStorePath) {
-				if(path[offset] == n) {
+			if(finishStorePath) 
+			{
+				if(path[offset] == n) 
+				{
 					offset++;
-					if(offset == path.length) {
+					if(offset == path.length) 
+					{
 						size++;
 						os.write(n);
 						break;
 					}
-				} else {
+				} 
+				else 
+				{
 					offset = 0;
 				}
 			}
@@ -221,14 +233,14 @@ public class CmdReader{
 	}
 	/**
 	 * 
-	 * @return read(is,os)¿¡¼­ ÀúÀåÇÑ ByteArrayOutputStreamÀÇ °ªÀ» byte[]·Î ¹ÝÈ¯ÇÑ´Ù.
+	 * @return read(is,os)ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ByteArrayOutputStreamï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ byte[]ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 */
 	public byte[] getBytes() {
 		return this.baos.toByteArray();
 	}
 	/**
 	 * 
-	 * @return read(is,os)¿¡¼­ ÀúÀåÇÑ ByteArrayOutputStreamÀÇ °ªÀ» StringÀ¸·Î ¹ÝÈ¯ÇÑ´Ù.
+	 * @return read(is,os)ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ByteArrayOutputStreamï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Stringï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ñ´ï¿½.
 	 * @throws UnsupportedEncodingException
 	 */
 	public String getString() throws UnsupportedEncodingException{
