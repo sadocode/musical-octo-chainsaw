@@ -65,11 +65,16 @@ public class ChatFrame extends JFrame{
 	}
 	private void serverBottom(JPanel panel)
 	{
-		//
+		//0111 1111
 	}
 	public static void main(String args[]) 
 	{
 		ChatFrame c = new ChatFrame("SERVER");
+		boolean a = true;
+		boolean b = false;
+		
+		
+	
 	}
 
 }

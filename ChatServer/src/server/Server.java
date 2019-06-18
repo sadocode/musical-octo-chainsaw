@@ -27,6 +27,10 @@ public class Server {
 	{
 		return clients;
 	}
+	private void setClients()
+	{
+		//
+	}
 	private void setEnvironment() 
 	{
 	   	try(FileInputStream fis = new FileInputStream("info.properties")) 
@@ -76,9 +80,8 @@ public class Server {
         	while(!Thread.currentThread().isInterrupted() && (socket = server.serverSocket.accept()) != null)
         	{
         		serverThread = new ServerThread(socket);
-        		thread = new Thread(serverThread);
-        		thread.start();
-        		list.add(thread);
+        		serverThread.start();
+        		list.add(serverThread);
         		if(list.size() > 10)
         			break;
         	}
@@ -126,52 +129,6 @@ public class Server {
 	readJoin() -> writeJoin()
 		writeJoin() : server에   clientId + "님이 입장했습니다."
 					  client에도 전부 뿌려줌.
-	
-	
-	$
-	client -> server로 가는 메시지 종류
-	1. join
-	2. chat
-	3. quit
-	
-	
-	
-	
-	
-	
-	헤드 무조건 4바이트 그냥 준다. 나중에 추가되는 부분이 있을 수 있으니까.
-	
-	$1.join
-	client가 접속할 때, server로 보내는 메시지
-	데이터 형식
-	0바이트 : 0
-	
-	4바이트부터 client name
-	끝에는 @finish@
-
-	$2.data		
-	데이터 형식
-	0바이트 : 1
-	1바이트      : 보내는 데이터의 타입. 0 : text, 1 : file
-	2바이트     : 보내는 데이터의 형식.
-		
-		00 : text/plain(채팅)
-		10 : image/jpg, 11 : image/bmp, 12 : image/png
-		13 : file/txt, 14 : file/html, 15 : file/js, 16 : file/css, 17 : file/java, 18 : file/zip			
-	3바이트	:
-	
-	4바이트부터는 데이터의 내용.
-	
-	데이터의 끝에는 @finish@ 를 붙여줌.
-	40 66 69 6e 69 73 68 40
-	@  f  i  n  i  s  h  @
-	
-	 
-	$3.quit
-	데이터 형식(1바이트 짜리임)
-	0바이트 : 2
-	
-	
 	
 	
 	
