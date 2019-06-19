@@ -35,7 +35,9 @@ public class ServerThread extends Thread{
 				size = readMessage(is, this.baos);
 				if(size != 0)
 				{
-					//broadcasting
+					//유효한 메시지면 Server로 넘김. 어떻게 넘기냐?
+					//server-t에서
+					//
 				}
 			}
 		}

@@ -1,6 +1,5 @@
 package server;
 
-import java.util.Properties;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.List;
@@ -9,19 +8,88 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.HashMap;
-//import Test.ChatFrame;
+import javax.swing.JFrame;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JPanel;
 
-
-
-public class Server {
-	private int port;
-	private Properties info;
+public class Server extends JFrame implements ActionListener{
+	private Socket socket;
 	private ServerSocket serverSocket;
+	
+	private JFrame serverFrame;
+	private JPanel top;
+	private JPanel bottom;
+	private JLabel portLabel;
+	private JTextField portField;
+	private java.awt.List list;
+	private JButton startButton;
+	private JButton endButton;
+	
+	private int port;
 	private Map clients;
 	
 	public Server()
 	{
-		clients = new HashMap();
+		//jframe 생성.
+		
+		//Map clients 초기화 및 동기화 처리해줄것.
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e)
+	{
+		//startButton.
+		//endButton 	누를 때의 event.
+	}
+	
+	private void startServer(int port)
+	{
+		//해당 port를 가지고 서버를 시작하.ㅁ
+		//serverSocket = new ServerSocket(port);
+		
+	}
+	private void endServer()
+	{
+		//client 유무 검사
+		//client 무 -> 서버 list에만 띄우고 서버 종료
+		//client 유 -> broadcast 후 서버 종료
+	}
+	private void joinClient()
+	{
+		
+	}
+	private void broadcasting()
+	{
+		// Map clients의 모든 client로 메시지 전송.
+	}
+	public static void main(String args[])
+	{
+		
+	}
+}
+
+
+
+
+
+/*
+public class Server implements ActionListener{
+	private int port;
+	private ServerSocket serverSocket;
+	private Map clients;
+	private ServerFrame serverFrame;
+	
+	public Server()
+	{
+		this.clients = new HashMap();
+		this.serverFrame = new ServerFrame();
+		this.serverFrame.getStartButton().addActionListener(this);
+		this.serverFrame.getEndButton().addActionListener(this);
+		
 	}
 	public Map getClients()
 	{
@@ -31,18 +99,20 @@ public class Server {
 	{
 		//
 	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e)
+	{
+		//startButton -> 해당 port로 소켓 열기
+		//endButton -> 서버 강제 종료.
+		//				종료전에 접속된 클라이언트 확인.
+		//				클라이언트가 없으면 바로 종료
+		//				클라이언트가 있으면 모든 클라이언트에게 종료 메시지 보내고 종료
+	}
+	
 	private void setEnvironment() 
 	{
-	   	try(FileInputStream fis = new FileInputStream("info.properties")) 
-	   	{
-	   		this.info = new Properties();
-	   		this.info.load(fis);
-	   		this.port = Integer.parseInt(info.getProperty("PORT"));
-	   	} 
-	   	catch(IOException ioe) 
-	   	{
-	   		ioe.printStackTrace(System.out);
-	  	}
+	   	
 	}
 	
 	public void setServerSocket()
@@ -51,11 +121,8 @@ public class Server {
     	{
     		this.serverSocket = new ServerSocket(this.port);
     		System.out.println("WebServer Socket Created. PortNumber : " + this.port);    		
-    		/*
-    		 * ChatFrame serverFrame = new ChatFrame("Server");
-    		 * 
-    		 * 
-    		 */
+    		//ChatFrame serverFrame = new ChatFrame("Server");
+    		 
     	} 
     	catch(IOException ioe) 
     	{
@@ -74,7 +141,7 @@ public class Server {
         List<Thread> list = new LinkedList<>();
         
         ServerThread serverThread;
-        Thread thread;
+        
         try 
         {
         	while(!Thread.currentThread().isInterrupted() && (socket = server.serverSocket.accept()) != null)
@@ -99,59 +166,4 @@ public class Server {
 
     }
 }
-
-/**
-	Thread pool
-	
-	ServerSocket
-	Socket
-	
-	$
-	Server는 client 접속을 무한루프로 기다림.
-			client의 write를 무한루프로 read함.
-			모든 client에 synchronized write 해줌.(??)
-	
-	
-	$server의
-	read()에서 첫 바이트를 보고
-	 readJoin() readChat() readQuit()으로 분기됨.
-	그리고 각각 처리.
-	
-		readJoin()
-			join 메시지를 읽고 해당 소켓의 name을 저장한다.
-			client id 저장해둬야해.
-		readChat()
-			chat 메시지를 읽고 해당 소켓에서 온 채팅을 저장.
-			채팅내용을 그대로 다른 client들에게 뿌려줌. server에는 표시X
-		readQuit()
-			
-			
-	readJoin() -> writeJoin()
-		writeJoin() : server에   clientId + "님이 입장했습니다."
-					  client에도 전부 뿌려줌.
-	
-	
-	
-	$	
-	Server는 client에서 message를 받으면 그걸 그대로 모든 클라이언트로 보내기만 한다.
-	각 client에서 받은 message 처리를 각각 해줘야한다.
-		abc님>안녕하세요
-		hkj님이 <파일>을 보냈습니다. <파일> 누르면 다운로드 됨.
-		hkj님>hihi
-		
-	$작동
-	1. server실행
-	2. server에서 스레드 풀 생성. 무한루프 -> client 접속 기다림
-	3. client 접속. server의 스레드 풀 중에 하나 받음.
-		client는 접속 전에 자기 id를 설정해야함.
-	4. server는 client의 write를 계속 read
-	
-
-	server client frame
-	
-	server에서 frame import
-	server에 while문 두고 애들 대기하는거 -- frame에 전송하는 거
-	
-	
-
 */
