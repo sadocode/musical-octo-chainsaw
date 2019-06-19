@@ -35,8 +35,9 @@ public class ServerThread extends Thread{
 				size = readMessage(is, this.baos);
 				if(size != 0)
 				{
-					//유효한 메시지면 Server로 넘김. 어떻게 넘기냐?
-					//server-t에서
+					
+					//�쑀�슚�븳 硫붿떆吏�硫� Server濡� �꽆源�. �뼱�뼸寃� �꽆湲곕깘?
+					//server-t�뿉�꽌
 					//
 				}
 			}
@@ -47,7 +48,7 @@ public class ServerThread extends Thread{
 		}
 	}
 	/**
-	 * socket의 InputStream에서 들어온 데이터의 총 바이트를 반환한다.
+	 * socket�쓽 InputStream�뿉�꽌 �뱾�뼱�삩 �뜲�씠�꽣�쓽 珥� 諛붿씠�듃瑜� 諛섑솚�븳�떎.
 	 * 
 	 * @param is
 	 * @param os
@@ -138,14 +139,14 @@ public class ServerThread extends Thread{
 	}
 	
 	/**
-	 * readJoin, readChat, readImage, readFinish에서 사용하는 메소드.
-	 * SIZE(8바이트)를 읽고, DATA(id or chat message or image)을 읽는 메소드
-	 * baos에 저장되는 값으로 
+	 * readJoin, readChat, readImage, readFinish�뿉�꽌 �궗�슜�븯�뒗 硫붿냼�뱶.
+	 * SIZE(8諛붿씠�듃)瑜� �씫怨�, DATA(id or chat message or image)�쓣 �씫�뒗 硫붿냼�뱶
+	 * baos�뿉 ���옣�릺�뒗 媛믪쑝濡� 
 	 * 		readJoin -> id
 	 * 		readChat -> message
 	 * 		readImage -> image data
 	 * 		readFinish -> id
-	 * 읽은 총 바이트 수를 반환한다.
+	 * �씫�� 珥� 諛붿씠�듃 �닔瑜� 諛섑솚�븳�떎.
 	 * @param is
 	 * @param os
 	 * @return size
@@ -209,7 +210,7 @@ public class ServerThread extends Thread{
 	
 	
 	//code error!!!!!!!!!!!!!!!!!!!!!!
-	// 고쳐야해..
+	// 怨좎퀜�빞�빐..
 	private int readFileAsk(InputStream is, OutputStream os) throws IOException
 	{
 		long size = 0;
@@ -266,8 +267,8 @@ public class ServerThread extends Thread{
 	}
 	
 	/**
-	 * type에 FILE_ACCEPT를 저장한다. 
-	 * 반환하는 size는 8바이트이다.
+	 * type�뿉 FILE_ACCEPT瑜� ���옣�븳�떎. 
+	 * 諛섑솚�븯�뒗 size�뒗 8諛붿씠�듃�씠�떎.
 	 * @param is
 	 * @param os
 	 * @return size
@@ -288,8 +289,8 @@ public class ServerThread extends Thread{
 	}
 	
 	/**
-	 * type에 FILE_DECLINE을 저장한다. 
-	 * 반환하는 size는 8바이트이다.
+	 * type�뿉 FILE_DECLINE�쓣 ���옣�븳�떎. 
+	 * 諛섑솚�븯�뒗 size�뒗 8諛붿씠�듃�씠�떎.
 	 * @param is
 	 * @param os
 	 * @return size

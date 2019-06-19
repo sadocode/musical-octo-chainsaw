@@ -15,12 +15,14 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
+import java.awt.FlowLayout;
+import java.awt.BorderLayout;
+import java.util.Collections;
 
 public class Server extends JFrame implements ActionListener{
 	private Socket socket;
 	private ServerSocket serverSocket;
 	
-	private JFrame serverFrame;
 	private JPanel top;
 	private JPanel bottom;
 	private JLabel portLabel;
@@ -31,44 +33,121 @@ public class Server extends JFrame implements ActionListener{
 	
 	private int port;
 	private Map clients;
+	private List<Thread> threadList;
+	private Collections collections;
 	
 	public Server()
 	{
-		//jframe 생성.
+		this.setFrame();
+		this.clients = new HashMap();
+		this.collections.synchronizedMap(this.clients);
 		
-		//Map clients 초기화 및 동기화 처리해줄것.
 	}
-	
+	public static void main(String args[])
+	{
+		Server server = new Server();
+		
+	}
+	private void setFrame()
+	{
+		this.portLabel = new JLabel("서버 포트 입력 ->");
+		this.portField = new JTextField(3);
+		this.startButton = new JButton("Server Start");
+		this.endButton = new JButton("Server End");
+		this.list = new java.awt.List();
+		this.top = new JPanel();
+		this.bottom = new JPanel();
+		this.top.setSize(500,200);
+		this.top.setLayout(new FlowLayout());
+		this.top.add(portLabel);
+		this.top.add(portField);
+		this.top.add(startButton);
+		this.bottom.setSize(500, 200);
+		this.bottom.add(endButton);
+		this.setLayout(new BorderLayout());
+		this.add("North", top);
+		this.add("Center", list);
+		this.add("South", bottom);
+		this.setTitle("Server");
+		this.setSize(500,1000);
+		this.startButton.addActionListener(this);
+		this.endButton.addActionListener(this);
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setVisible(true);
+	}
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
+		Object obj = e.getSource();
+		
+		if(obj == this.startButton)
+		{
+			this.startServer();
+		}
+		else if(obj == this.endButton)
+		{
+			
+		}
 		//startButton.
-		//endButton 	누를 때의 event.
+		//endButton 	�늻瑜� �븣�쓽 event.
 	}
-	
-	private void startServer(int port)
+	public void test()
 	{
-		//해당 port를 가지고 서버를 시작하.ㅁ
-		//serverSocket = new ServerSocket(port);
+		//test
+	}
+	private void startServer()
+	{
+		this.port = Integer.parseInt(portField.getText());
+		
+		try
+		{
+			this.serverSocket = new ServerSocket(this.port);
+			this.list.add("서버가 시작되었습니다.");
+			ServerThread serverThread;
+			
+			while(!Thread.currentThread().isInterrupted() && (this.socket = this.serverSocket.accept()) != null)
+        	{
+        		serverThread = new ServerThread(this.socket);
+        		serverThread.start();
+        		this.threadList.add(serverThread);
+        		if(this.threadList.size() > 10)
+        			break;
+        		
+        		
+        	}
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
+		finally 
+        {
+        	try
+        	{
+        		this.serverSocket.close();
+        	}
+        	catch(Exception e)
+        	{
+        		this.serverSocket = null;
+        	}
+        }
+		
 		
 	}
 	private void endServer()
 	{
-		//client 유무 검사
-		//client 무 -> 서버 list에만 띄우고 서버 종료
-		//client 유 -> broadcast 후 서버 종료
+		
+		//client �쑀臾� 寃��궗
+		//client 臾� -> �꽌踰� list�뿉留� �쓣�슦怨� �꽌踰� 醫낅즺
+		//client �쑀 -> broadcast �썑 �꽌踰� 醫낅즺
 	}
-	private void joinClient()
+	public static void joinClient()
 	{
 		
 	}
-	private void broadcasting()
+	public static void broadcasting()
 	{
-		// Map clients의 모든 client로 메시지 전송.
-	}
-	public static void main(String args[])
-	{
-		
+		// Map clients�쓽 紐⑤뱺 client濡� 硫붿떆吏� �쟾�넚.
 	}
 }
 
@@ -103,11 +182,11 @@ public class Server implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		//startButton -> 해당 port로 소켓 열기
-		//endButton -> 서버 강제 종료.
-		//				종료전에 접속된 클라이언트 확인.
-		//				클라이언트가 없으면 바로 종료
-		//				클라이언트가 있으면 모든 클라이언트에게 종료 메시지 보내고 종료
+		//startButton -> �빐�떦 port濡� �냼耳� �뿴湲�
+		//endButton -> �꽌踰� 媛뺤젣 醫낅즺.
+		//				醫낅즺�쟾�뿉 �젒�냽�맂 �겢�씪�씠�뼵�듃 �솗�씤.
+		//				�겢�씪�씠�뼵�듃媛� �뾾�쑝硫� 諛붾줈 醫낅즺
+		//				�겢�씪�씠�뼵�듃媛� �엳�쑝硫� 紐⑤뱺 �겢�씪�씠�뼵�듃�뿉寃� 醫낅즺 硫붿떆吏� 蹂대궡怨� 醫낅즺
 	}
 	
 	private void setEnvironment() 
