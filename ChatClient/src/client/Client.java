@@ -11,6 +11,8 @@ import javax.swing.JPanel;
 import javax.swing.JLabel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 
 public class Client extends JFrame implements ActionListener{
 	private ByteArrayOutputStream baos;
@@ -20,8 +22,22 @@ public class Client extends JFrame implements ActionListener{
 	private String id;
 	private String type;
 	
-	
-	
+	private JPanel top;
+	private JPanel bottom;
+	private JPanel bottomButton;
+	private JPanel bottomChat;
+	private java.awt.List list;
+	private JLabel ipLabel;
+	private JLabel portLabel;
+	private JLabel idLabel;
+	private JTextField ipField;
+	private JTextField portField;
+	private JTextField idField;
+	private JButton startButton;
+	private JButton endButton;
+	private JButton fileSendButton;
+	private JButton imageSendButton;
+	private JTextField chatField;
 	
 	public Client()
 	{
@@ -32,13 +48,92 @@ public class Client extends JFrame implements ActionListener{
 	public static void main(String[] args) 
 	{
 		Client client = new Client();
+		byte[] a = new byte[4];
+		
 		
 	}
-	
+	private int byteBufferToInt(byte[] buffer, int size)
+	{
+		int value = 0;
+		int index = size - 1;
+		int x = 0;
+		while(index >= 0)
+		{
+			value += (int)((buffer[index] & 0xFF) << 8 * (size - index-- - 1));
+			
+			x++;
+		}
+		
+		System.out.println(value + " @@" + x);
+		return value;
+	}
+	private long byteBufferToLong(byte[]buffer, int size)
+	{
+		long value = 0;
+		int index = size - 1;
+		while(index >= 0)
+		{
+			value += (long)((buffer[index] & 0xFFL) << 8 * (size - index-- - 1));
+			System.out.println(value);
+		}
+		return value;
+	}
 	private void setFrame()
 	{
-		JPanel top = new JPanel();
-		//set Frame
+		this.ipLabel = new JLabel("ip ->");
+		this.ipField = new JTextField(12);
+		this.portLabel = new JLabel("port ->");
+		this.portField = new JTextField(3);
+		this.idLabel = new JLabel("id -> ");
+		this.idField = new JTextField(5);
+		this.startButton = new JButton("Ã¤ÆÃ ½ÃÀÛ");
+		this.fileSendButton = new JButton("ÆÄÀÏ Àü¼Û");
+		this.imageSendButton = new JButton("»çÁø Àü¼Û");
+		this.endButton = new JButton("Ã¤ÆÃ Á¾·á");
+		this.chatField = new JTextField(25);
+		this.list = new java.awt.List();
+		this.top = new JPanel();
+		this.bottom = new JPanel();
+		this.bottomButton = new JPanel();
+		this.bottomChat = new JPanel();
+		
+		this.setSize(500, 1000);
+		this.setLayout(new BorderLayout());
+		this.top.setLayout(new FlowLayout());
+		this.bottom.setLayout(new BorderLayout());
+		this.bottomChat.setLayout(new FlowLayout());
+		
+		this.top.setSize(500, 200);
+		this.bottom.setSize(500, 200);
+		this.bottomButton.setSize(500,100);
+		this.bottomChat.setSize(500, 100);
+		this.top.add(ipLabel);
+		this.top.add(ipField);
+		this.top.add(portLabel);
+		this.top.add(portField);
+		this.top.add(idLabel);
+		this.top.add(idField);
+		this.top.add(startButton);
+		this.bottomButton.add(fileSendButton);
+		this.bottomButton.add(imageSendButton);
+		this.bottomButton.add(endButton);
+		this.bottomChat.add(chatField);
+		this.bottom.add("North", this.bottomButton);
+		this.bottom.add("South", this.bottomChat);
+		
+		this.startButton.addActionListener(this);
+		this.endButton.addActionListener(this);
+		this.fileSendButton.addActionListener(this);
+		this.imageSendButton.addActionListener(this);
+		
+		//key ¾×¼Ç ÀÌº¥Æ®µµ Ãß°¡ÇØ¾ßÇØ..
+		//¿£ÅÍ ´©¸£¸é Ã¤ÆÃ Àü¼ÛµÇµµ·Ï.
+		
+		this.add("North", this.top);
+		this.add("Center", this.list);
+		this.add("South", this.bottom);
+		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		this.setVisible(true);
 	}
 
 	
@@ -46,13 +141,29 @@ public class Client extends JFrame implements ActionListener{
 	public void actionPerformed(ActionEvent e)
 	{
 		Object obj = e.getSource();
+		if(obj == this.startButton)
+		{
+			
+		}
+		if(obj == this.endButton)
+		{
+			
+		}
+		if(obj == this.fileSendButton)
+		{
+			
+		}
+		if(obj == this.imageSendButton)
+		{
+			
+		}
 		
-		//ê° ë²„íŠ¼ ë³„ ì´ë²¤íŠ¸ ë°œìƒ.
-		
+		//°¢ ¹öÆ° º° ÀÌº¥Æ® ¹ß»ı.
+		// Å° ÀÌº¥Æ®µµ µî·ÏÇØ¾ßÇØ.
 	}
 	
-	//ì´ê±° ì•ˆ ì“¸ ê±° ê°™ì€ë°?
-	//ê·¸ëƒ¥ ê° ì²˜ë¦¬ì—ì„œ writeXXXí•  ê±° ê°™ì€ë””
+	//ÀÌ°Å ¾È ¾µ °Å °°Àºµ¥?
+	//±×³É °¢ Ã³¸®¿¡¼­ writeXXXÇÒ °Å °°Àºµğ
 	private void write(OutputStream os)
 	{
 		this.baos.reset();		
@@ -84,7 +195,7 @@ public class Client extends JFrame implements ActionListener{
 	private void writeJoin(OutputStream os)
 	{
 		
-		//packetì„ ë§Œë“¤ì–´ì¤Œ.
+		//packetÀ» ¸¸µé¾îÁÜ.
 	}
 	private void writeChat(OutputStream os)
 	{
@@ -115,7 +226,7 @@ public class Client extends JFrame implements ActionListener{
 		
 	}
 	/**
-	 * serverë¡œ baosì˜ ê°’ì„ ë³´ë‚´ëŠ” ë©”ì†Œë“œ
+	 * server·Î baosÀÇ °ªÀ» º¸³»´Â ¸Ş¼Òµå
 	 * @param os
 	 * @return baos
 	 */
