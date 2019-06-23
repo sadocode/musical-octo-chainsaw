@@ -78,7 +78,7 @@ public class ServerThread extends Thread{
 			throw new java.lang.NullPointerException("readMessage() is is null.");
 		
 		this.baos.reset();
-		
+		this.readSop(is);
 		
 		return size;
 	}
@@ -489,11 +489,7 @@ public class ServerThread extends Thread{
 		while(index >= 0)
 		{
 			value += (int)((buffer[index] & 0xFF) << 8 * (size - index-- - 1));
-			
-			x++;
 		}
-		
-		System.out.println(value + " @@" + x);
 		return value;
 	}
 	private long byteBufferToLong(byte[]buffer, int size)
@@ -503,7 +499,6 @@ public class ServerThread extends Thread{
 		while(index >= 0)
 		{
 			value += (long)((buffer[index] & 0xFFL) << 8 * (size - index-- - 1));
-			System.out.println(value);
 		}
 		return value;
 	}

@@ -80,6 +80,7 @@ public class Server extends JFrame implements ActionListener{
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.setVisible(true);
 	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
