@@ -1,3 +1,4 @@
+
 package server;
 
 import java.net.Socket;
@@ -14,21 +15,23 @@ public class ServerThread extends Thread{
 	private InputStream is;
 	private OutputStream os;
 	
-	private String type;
+	public byte type;
 	private String name;
 	private byte[] nameByte;
 	private int nameSize;
 	private long fileSize;
 	private byte[] fileData;
 	
-	public static final String JOIN = "JOIN";
-	public static final String CHAT = "CHAT";
-	public static final String IMAGE = "IMAGE";
-	public static final String FILE_ASK = "FILE_ASK";
-	public static final String FILE_ACCEPT = "FILE_ACCEPT";
-	public static final String FILE_DECLINE = "FILE_DECLINE";
-	public static final String FILE_SEND = "FILE_SEND";
-	public static final String FINISH = "FINISH";
+	private byte[] flag = new byte[2];
+	
+	public static final byte JOIN = 0;
+	public static final byte CHAT = 1;
+	public static final byte IMAGE = 2;
+	public static final byte FILE_ASK = 3;
+	public static final byte FILE_ACCEPT = 4;
+	public static final byte FILE_DECLINE = 5;
+	public static final byte FILE_SEND = 6;
+	public static final byte FINISH = 127;
 	
 	public ServerThread(Socket socket)
 	{
@@ -37,6 +40,15 @@ public class ServerThread extends Thread{
 		
 		this.socket = socket;
 		this.baos = new ByteArrayOutputStream();
+		try
+		{
+			this.is = this.socket.getInputStream();
+			this.os = this.socket.getOutputStream();
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -45,25 +57,22 @@ public class ServerThread extends Thread{
 		int size = 0;
 		try
 		{
-			InputStream is = this.socket.getInputStream();
-			while(true)
+			size = this.readMessage(this.is, this.baos);
+			
+			Server.addClient(this.name, this.os);
+			Server.addList(this.name+"님이 접속했습니다.");
+			
+			while(this.is != null)
 			{
-				size = readMessage(is, this.baos);
-				if(size != 0)
-				{
-					
-					//유효한 메시지면 Server로 넘김. 어떻게 넘기냐?
-					//server-t에서
-					//
-				}
-				size = 0;
+				size = this.readMessage(this.is, this.baos);
 			}
 		}
-		catch(Exception e)
+		catch(IOException ioe)
 		{
-			e.printStackTrace(System.out);
+			ioe.printStackTrace(System.out);
 		}
 	}
+	
 	/**
 	 * 읽은 패킷에 오류가 있을 때 0을 반환한다. 정상적인 패킷일 경우 읽은 총 size반환.
 	 * 
@@ -77,8 +86,53 @@ public class ServerThread extends Thread{
 		if(is == null)
 			throw new java.lang.NullPointerException("readMessage() is is null.");
 		
+		int size = 0;
+		int temp = 0;
 		this.baos.reset();
-		this.readSop(is);
+		
+		System.out.println("1");
+		if((temp = this.readSop(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		
+		System.out.println("2");
+		if((temp = this.readType(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		System.out.println("3");
+		if((temp = this.readFlag(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		System.out.println("4");
+		if((temp = this.readNsize(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		System.out.println("5");
+		if((temp = this.readName(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		
+		System.out.println("6");
+		if((temp = this.readSize(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		
+		if((temp = this.readData(is)) != 0)
+			size += temp;
+		else 
+			return temp;
+		
+		if((temp = this.readEOP(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		
 		
 		return size;
 	}
@@ -99,12 +153,20 @@ public class ServerThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		
+		System.out.println("@" + this.byteBufferToInt(checkBuffer, 4));
 		if(this.byteBufferToInt(checkBuffer, 4) != 0)
 			return 0;
 				
 		return n;
 	}
+	
+	/**
+	 * 1바이트에 해당하는 TYPE을 읽고 정상이면 1, 오류면 0을 반환.
+	 * this.type 값을 초기화해준다.
+	 * @param is
+	 * @return 1 or 0 반환
+	 * @throws IOException
+	 */
 	private int readType(InputStream is) throws IOException
 	{
 		int n = 0;
@@ -137,14 +199,30 @@ public class ServerThread extends Thread{
 			this.type = this.FINISH;
 			break;
 		default:
-			this.type = null;
+			this.type = -1;
 			break;
 		}
 		
-		if(this.type != null)
+		System.out.println("T@"+this.type);
+		if(this.type != -1)
 			return 1;
 		else
 			return 0;
+	}
+	
+	private int readFlag(InputStream is) throws IOException
+	{
+		int n = 0;
+		byte[] flagCheck = new byte[2];
+		
+		n = is.read(flagCheck, 0 , 2);
+		
+		if(n != 2)
+			return 0;
+		
+		System.out.println("F@"+flagCheck[0] +"@" + flagCheck[1]);
+		System.arraycopy(flagCheck, 0, this.flag, 0, 2);
+		return 2;
 	}
 	
 	/**
@@ -162,10 +240,10 @@ public class ServerThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		//
-		///
-		//byteBufferToInt 수정 필요.
+		
+		
 		this.nameSize = this.byteBufferToInt(checkBuffer, 4);
+		System.out.println("NS@"+this.nameSize);
 		return n;
 	}
 	
@@ -193,9 +271,10 @@ public class ServerThread extends Thread{
 		{
 			this.name = new String(name);
 		}
+		System.out.println("!!");
 		
 		System.arraycopy(name, 0, this.nameByte, 0, this.nameSize);
-		
+		System.out.println("N@" + this.name);
 		name = null;
 		return n;
 	}
@@ -215,8 +294,7 @@ public class ServerThread extends Thread{
 		if(n != 4)
 			return 0;
 		
-		//byteBufferToInt 수정필요
-		this.fileSize = this.byteBufferToInt(checkBuffer, 4);
+		this.fileSize = this.byteBufferToLong(checkBuffer, 4);
 		return n;
 	}
 	
@@ -244,23 +322,26 @@ public class ServerThread extends Thread{
 		}
 		else 
 		{
-			temp = 0x7fffffff;
+			temp = (temp & 0x7fffffff);
+		
 			dataBuffer = new byte[temp];
 			n = is.read(dataBuffer, 0, temp);
 			
 			if(n != temp)
 				return 0;
 			
+			int temp2 = 0x40000000;
+			//temp2 만큼 그냥 두 번 더 받아서
+			//temp + temp2 + temp2 이렇게 둬야하나 싶은데.
+			
+			
+			//ADD MORE!!!#!@#!#
 			this.fileSize += temp;
 			
-			// have to add more..
-			return 0;
-			
+				
 		}
 		
-		
-		
-		
+		return temp;
 	}
 	
 	/**
@@ -284,188 +365,7 @@ public class ServerThread extends Thread{
 		
 		return n;
 	}
-	/**
-	 * readJoin, readChat, readImage, readFinish에서 사용하는 메소드.
-	 * SIZE(8바이트)를 읽고, DATA(id or chat message or image)을 읽는 메소드
-	 * baos에 저장되는 값으로 
-	 * 		readJoin -> id
-	 * 		readChat -> message
-	 * 		readImage -> image data
-	 * 		readFinish -> id
-	 * 읽은 총 바이트 수를 반환한다.
-	 * @param is
-	 * @param os
-	 * @return size
- 	 * @throws IOException
-	 */
-	private int read(InputStream is, OutputStream os) throws IOException
-	{
-		int size = 0;
-		long dataSize = 0;
-		byte[] sizeBuffer = new byte[8];
-		int n = 0;
-		ByteBuffer bb;
-		
-		while(true)
-		{
-			if(size == 0)
-			{
-				n = is.read(sizeBuffer, 0, 8);
-				
-				if(n < 8)
-					break;
-				
-				bb = ByteBuffer.wrap(sizeBuffer);
-				dataSize = bb.getLong();	
-				size += 8;
-				
-				continue;
-			}
-			
-			if(size < 8 + dataSize) 
-			{
-				n = is.read();
-			
-				if(n < 0)
-					break;
-			
-				os.write(n);
-				size++;
-			}
-			if(size == 8 + dataSize)
-				break;
-		}
-		
-		return size;
-	}
-	private int readJoin(InputStream is, OutputStream os) throws IOException
-	{
-		this.type = "JOIN";
-		return this.read(is, os);
-	}
-	private int readChat(InputStream is, OutputStream os) throws IOException
-	{
-		this.type = "CHAT";
-		return this.read(is, os);
-	}
-	private int readImage(InputStream is, OutputStream os) throws IOException
-	{
-		this.type = "IMAGE";
-		return this.read(is, os);
-	}
-	
-	
-	//code error!!!!!!!!!!!!!!!!!!!!!!
-	// 고쳐야해..
-	private int readFileAsk(InputStream is, OutputStream os) throws IOException
-	{
-		long size = 0;
-		long dataSize = 0;
-		byte[] sizeBuffer = new byte[8];
-		int n = 0;
-		ByteBuffer bb;
-		
-		while(true)
-		{
-			if(size == 0)
-			{
-				n = is.read(sizeBuffer, 0, 8);
-				
-				if(n < 8)
-					break;
-				
-				bb = ByteBuffer.wrap(sizeBuffer);
-				dataSize = bb.getLong();	
-				size += 8;
-				
-				continue;
-			}
-			if(size == 8)
-			{
-				n = is.read(sizeBuffer, 0, 8);
-				
-				if(n < 8)
-					break;
-				
-				bb = ByteBuffer.wrap(sizeBuffer);
-				dataSize = bb.getLong();	
-				size += 8;
-				this.fileSize = dataSize;
-				continue;
-			}
-			if(size >= 16)
-			{
-				n = is.read();
-				
-				if(n < 0)
-					break;
-				
-				os.write(n);
-				size++;
-				
-				if(dataSize == size)
-					break;
-			}
-		}
-		
-		this.type = "FILE_ASK";
-		return (int)size;
-	}
-	
-	/**
-	 * type에 FILE_ACCEPT를 저장한다. 
-	 * 반환하는 size는 8바이트이다.
-	 * @param is
-	 * @param os
-	 * @return size
-	 * @throws IOException
-	 */
-	private int readFileAccept(InputStream is, OutputStream os) throws IOException
-	{
-		int size = 8;
-		byte[] sizeBuffer = new byte[8];
-		int n = 0;
-		
-		n = is.read(sizeBuffer, 0, 8);
-		if(n < 8)
-			throw new java.io.IOException();
-		
-		this.type = "FILE_ACCEPT";
-		return size;
-	}
-	
-	/**
-	 * type에 FILE_DECLINE을 저장한다. 
-	 * 반환하는 size는 8바이트이다.
-	 * @param is
-	 * @param os
-	 * @return size
-	 * @throws IOException
-	 */
-	private int readFileDecline(InputStream is, OutputStream os) throws IOException
-	{
-		int size = 8;
-		byte[] sizeBuffer = new byte[8];
-		int n = 0;
-		
-		n = is.read(sizeBuffer, 0, 8);
-		if(n < 8)
-			throw new java.io.IOException();
-		
-		this.type = "FILE_DECLINE";
-		return size;
-	}
-	
-	private int readFileSend(InputStream is, OutputStream os) throws IOException
-	{
-		this.type = "FILE_SEND";
-		return this.read(is, os);
-	}
-	private int readFinish(InputStream is, OutputStream os) throws IOException
-	{
-		this.type = "FINISH";
-		return this.read(is, os);
-	}
+
 	public String getString()
 	{
 		try

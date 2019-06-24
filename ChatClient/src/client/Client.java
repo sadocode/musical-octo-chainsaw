@@ -1,3 +1,4 @@
+
 package client;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -6,6 +7,9 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -14,13 +18,15 @@ import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
-public class Client extends JFrame implements ActionListener{
+public class Client extends JFrame implements ActionListener, KeyListener{
 	private ByteArrayOutputStream baos;
 	private Socket socket;
 	private int port;
 	private String ip;
 	private String id;
-	private String type;
+	private int type;
+	private OutputStream out;
+	
 	
 	private JPanel top;
 	private JPanel bottom;
@@ -39,6 +45,24 @@ public class Client extends JFrame implements ActionListener{
 	private JButton imageSendButton;
 	private JTextField chatField;
 	
+	private static final byte[] SOP = {0x00, 0x00, 0x00, 0x00};
+	private static final byte[] EOP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
+	
+	public static final byte JOIN = 0;
+	public static final byte CHAT = 1;
+	public static final byte IMAGE = 2;
+	public static final byte FILE_ASK = 3;
+	public static final byte FILE_ACCEPT = 4;
+	public static final byte FILE_DECLINE = 5;
+	public static final byte FILE_SEND = 6;
+	public static final byte FINISH = 127;
+	
+	public static final byte[] ZERO = {0x00, 0x00, 0x00, 0x00};
+	
+	public static final byte[] FLAG10 = {0x01, 0x00};
+	public static final byte[] FLAG00 = {0x00, 0x00};
+	public static final byte[] FLAG01 = {0x00, 0x01};
+	
 	public Client()
 	{
 		this.baos = new ByteArrayOutputStream();
@@ -48,36 +72,9 @@ public class Client extends JFrame implements ActionListener{
 	public static void main(String[] args) 
 	{
 		Client client = new Client();
-		byte[] a = new byte[4];
-		
 		
 	}
-	private int byteBufferToInt(byte[] buffer, int size)
-	{
-		int value = 0;
-		int index = size - 1;
-		int x = 0;
-		while(index >= 0)
-		{
-			value += (int)((buffer[index] & 0xFF) << 8 * (size - index-- - 1));
-			
-			x++;
-		}
-		
-		System.out.println(value + " @@" + x);
-		return value;
-	}
-	private long byteBufferToLong(byte[]buffer, int size)
-	{
-		long value = 0;
-		int index = size - 1;
-		while(index >= 0)
-		{
-			value += (long)((buffer[index] & 0xFFL) << 8 * (size - index-- - 1));
-			System.out.println(value);
-		}
-		return value;
-	}
+
 	private void setFrame()
 	{
 		this.ipLabel = new JLabel("ip ->");
@@ -86,10 +83,10 @@ public class Client extends JFrame implements ActionListener{
 		this.portField = new JTextField(3);
 		this.idLabel = new JLabel("id -> ");
 		this.idField = new JTextField(5);
-		this.startButton = new JButton("채팅 시작");
-		this.fileSendButton = new JButton("파일 전송");
-		this.imageSendButton = new JButton("사진 전송");
-		this.endButton = new JButton("채팅 종료");
+		this.startButton = new JButton("옜 옜");
+		this.fileSendButton = new JButton("옜 옜");
+		this.imageSendButton = new JButton("옜 옜");
+		this.endButton = new JButton("옜 옜");
 		this.chatField = new JTextField(25);
 		this.list = new java.awt.List();
 		this.top = new JPanel();
@@ -97,7 +94,7 @@ public class Client extends JFrame implements ActionListener{
 		this.bottomButton = new JPanel();
 		this.bottomChat = new JPanel();
 		
-		this.setSize(500, 1000);
+		this.setSize(500, 600);
 		this.setLayout(new BorderLayout());
 		this.top.setLayout(new FlowLayout());
 		this.bottom.setLayout(new BorderLayout());
@@ -125,9 +122,9 @@ public class Client extends JFrame implements ActionListener{
 		this.endButton.addActionListener(this);
 		this.fileSendButton.addActionListener(this);
 		this.imageSendButton.addActionListener(this);
-		
-		//key 액션 이벤트도 추가해야해..
-		//엔터 누르면 채팅 전송되도록.
+		this.chatField.addKeyListener(this);
+		//key 옜� 옜
+		// enter -> 옜 옜
 		
 		this.add("North", this.top);
 		this.add("Center", this.list);
@@ -143,11 +140,11 @@ public class Client extends JFrame implements ActionListener{
 		Object obj = e.getSource();
 		if(obj == this.startButton)
 		{
-			
+			this.writeJoin(this.baos);
 		}
 		if(obj == this.endButton)
 		{
-			
+			this.writeFinish(this.baos);
 		}
 		if(obj == this.fileSendButton)
 		{
@@ -157,49 +154,88 @@ public class Client extends JFrame implements ActionListener{
 		{
 			
 		}
-		
-		//각 버튼 별 이벤트 발생.
-		// 키 이벤트도 등록해야해.
+
 	}
-	
-	//이거 안 쓸 거 같은데?
-	//그냥 각 처리에서 writeXXX할 거 같은디
-	private void write(OutputStream os)
+	@Override
+	public void keyPressed(KeyEvent e) 
 	{
-		this.baos.reset();		
-		switch(this.type)
+		if (e.getKeyCode() == KeyEvent.VK_ENTER)
 		{
-		case("JOIN"):
-			this.writeJoin(this.baos);
-			break;
-		case("CHAT"):
-			break;
-		case("IMAGE"):
-			break;
-		case("FILE_ASK"):
-			break;
-		case("FILE_ACCEPT"):
-			break;
-		case("FILE_DECLINE"):
-			break;
-		case("FILE_SEND"):
-			break;
-		case("FINISH"):
-			break;
-		default:
-			break;
+			this.writeChat(this.baos, this.chatField.getText());
+			this.chatField.setText("");
 		}
 	}
+	public void keyTyped(KeyEvent e)
+	{
 	
+	}
+	public void keyReleased(KeyEvent e) 
+	{
 	
+	}
 	private void writeJoin(OutputStream os)
 	{
+		this.baos.reset();
+	
+		this.ip = ipField.getText();
+		this.port = Integer.parseInt(portField.getText());
+		this.id = idField.getText();
+		byte[] name = id.getBytes();
 		
-		//packet을 만들어줌.
+		try
+		{	
+		
+			os.write(SOP);
+			os.write(JOIN);
+			os.write(FLAG10);
+			os.write(this.intToByteBuffer(name.length));
+			os.write(name);
+			os.write(ZERO);
+			os.write(EOP);
+			// baos� 옜� 옜.	
+		}
+		catch(IOException ioe)
+		{
+			this.baos.reset();
+			ioe.printStackTrace(System.out);
+		}
+		
+		try
+		{
+			this.socket = new Socket(ip, this.port);
+			this.out = this.socket.getOutputStream();
+			ClientThread clientThread = new ClientThread(this.socket);
+			clientThread.start();
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
+	
+		this.sendMessage(this.out);
 	}
-	private void writeChat(OutputStream os)
+	private void writeChat(OutputStream os, String chat)
 	{
+		this.baos.reset();
+		byte[] temp = chat.getBytes();
 		
+		try
+		{
+			os.write(SOP);
+			os.write(CHAT);
+			os.write(FLAG10);
+			os.write(ZERO);
+			os.write(temp.length);
+			os.write(temp);
+			os.write(EOP);
+		}
+		catch(IOException ioe)
+		{
+			this.baos.reset();
+			ioe.printStackTrace(System.out);
+		}
+		
+		this.sendMessage(this.out);
 	}
 	private void writeImage(OutputStream os)
 	{
@@ -223,21 +259,73 @@ public class Client extends JFrame implements ActionListener{
 	}
 	private void writeFinish(OutputStream os)
 	{
+		this.baos.reset();
+		byte[] name = this.id.getBytes();
 		
+		try
+		{
+			os.write(SOP);
+			os.write(FINISH);
+			os.write(FLAG10);
+			os.write(name.length);
+			os.write(name);
+			os.write(ZERO);
+			os.write(EOP);
+		}
+		catch(IOException ioe)
+		{
+			this.baos.reset();
+			ioe.printStackTrace(System.out);
+		}
+		
+		this.sendMessage(this.out);
 	}
-	/**
-	 * server로 baos의 값을 보내는 메소드
-	 * @param os
-	 * @return baos
-	 */
-	private byte[] sendMessage(OutputStream os)
+	
+	private void sendMessage(OutputStream os)
 	{
-		return this.baos.toByteArray();
+		try
+		{
+			System.out.println(this.getBytes());
+			os.write(this.getBytes());
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
 	}
 	private byte[] getBytes()
 	{
 		
 		return this.baos.toByteArray();
 	}
-	
-}
+	private int byteBufferToInt(byte[] buffer, int size)
+	{
+		int value = 0;
+		int index = size - 1;
+		while(index >= 0)
+		{
+			value += (int)((buffer[index] & 0xFF) << 8 * (size - index-- - 1));
+		}
+		return value;
+	}
+	private long byteBufferToLong(byte[]buffer, int size)
+	{
+		long value = 0;
+		int index = size - 1;
+		while(index >= 0)
+		{
+			value += (long)((buffer[index] & 0xFFL) << 8 * (size - index-- - 1));
+		}
+		return value;
+	}
+	private byte[] intToByteBuffer(int value)
+	{
+		byte[] buffer = new byte[4];
+		int temp = value & 0xff000000;
+		buffer[0] = (byte)((value & 0xff000000) >> 24); 
+		buffer[1] = (byte)((value & 0x00ff0000) >> 16);
+		buffer[2] = (byte)((value & 0x0000ff00) >> 8);
+		buffer[3] = (byte)((value & 0x000000ff));
+		return buffer;
+	}
+

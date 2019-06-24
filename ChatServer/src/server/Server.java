@@ -1,5 +1,7 @@
+
 package server;
 
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.List;
@@ -21,36 +23,43 @@ import java.awt.BorderLayout;
 import java.util.Collections;
 
 public class Server extends JFrame implements ActionListener{
-	private Socket socket;
-	private ServerSocket serverSocket;
+	protected Socket socket;
+	protected ServerSocket serverSocket;
 	
 	
 	private JPanel top;
 	private JPanel bottom;
 	private JLabel portLabel;
 	private JTextField portField;
-	private java.awt.List list;
+	public static java.awt.List list;
 	private JButton startButton;
 	private JButton endButton;
 	
 	private int port;
-	private Map clients;
+	public static Map clients;
 	
 	private List<Thread> threadList;
-	private Collections collections;
+	public static Collections collections;
 	
 	public Server()
 	{
 		this.setFrame();
-		this.clients = new HashMap();
-		this.collections.synchronizedMap(this.clients);
-		
+		clients = new HashMap();
+		collections.synchronizedMap(clients);
 		
 	}
 	public static void main(String args[])
 	{
 		Server server = new Server();
+	}
+	public static void broadcasting()
+	{
 		
+		// Map clients의 모든 client로 메시지 전송.
+	}
+	public static void addClient(String id, OutputStream os)
+	{
+		clients.put(id, os);
 	}
 	
 	private void setFrame()
@@ -74,10 +83,11 @@ public class Server extends JFrame implements ActionListener{
 		this.add("Center", list);
 		this.add("South", bottom);
 		this.setTitle("Server");
-		this.setSize(500,1000);
+		this.setSize(500,600);
 		this.startButton.addActionListener(this);
 		this.endButton.addActionListener(this);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		this.setLocation(500, 500);
 		this.setVisible(true);
 	}
 	
@@ -92,51 +102,42 @@ public class Server extends JFrame implements ActionListener{
 		}
 		else if(obj == this.endButton)
 		{
-			//endButton 	
+			this.endServer(); 	
 		}
 	}
 	
 	private void startServer()
 	{
 		this.port = Integer.parseInt(portField.getText());
-		
+		addList("서버가 시작되었습니다.");
 		try
 		{
 			this.serverSocket = new ServerSocket(this.port);
-			this.list.add("서버가 시작되었습니다.");
-			
-			ServerThread serverThread;
-			
-			while(!Thread.currentThread().isInterrupted() && (this.socket = this.serverSocket.accept()) != null)
-        	{
-        		serverThread = new ServerThread(this.socket);
-        		serverThread.start();
-        		this.threadList.add(serverThread);
-        		if(this.threadList.size() > 10)
-        			break;
-        		//clients에  id, socket.getOutputStream 을 입력해준다.
-        		//
-        	}
+			Thread thread = new StartThread();
+			thread.start();
 		}
 		catch(IOException ioe)
 		{
 			ioe.printStackTrace(System.out);
 		}
-		finally 
-        {
-        	try
-        	{
-        		this.serverSocket.close();
-        	}
-        	catch(Exception e)
-        	{
-        		this.serverSocket = null;
-        	}
-        }
 	}
 	
 	private void endServer()
 	{
+		if(!clients.isEmpty())
+			broadcasting();
+			
+		list.add("서버가 종료됩니다.");
+		
+		try
+		{
+			this.socket.close();
+			this.serverSocket.close();
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
 		//client 유무 검사
 		//client 무 -> 서버 list에만 띄우고 서버 종료
 		//client 유 -> broadcast 후 서버 종료
@@ -145,13 +146,31 @@ public class Server extends JFrame implements ActionListener{
 	{
 		
 	}
-	public static void addList()
+	public static void addList(String s)
 	{
-		
+		list.add(s);
 	}
-	public static void broadcasting()
+	class StartThread extends Thread
 	{
-		// 
-		// Map clients의 모든 client로 메시지 전송.
+		@Override
+		public void run()
+		{
+			StringBuilder sb;
+			while(true)
+			{
+				try
+				{
+					socket = serverSocket.accept();					
+				}
+				catch(IOException ioe)
+				{
+					ioe.printStackTrace(System.out);
+				}
+				sb = new StringBuilder("[").append(socket.getInetAddress()).append(":").append(socket.getPort()).append("]").append("에서 접속하였습니다.");
+				Server.addList(sb.toString());
+				ServerThread serverThread = new ServerThread(socket);
+				serverThread.start();
+			}
+		}
 	}
 }
