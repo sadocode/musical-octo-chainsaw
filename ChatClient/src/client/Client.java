@@ -1,7 +1,7 @@
-
 package client;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
+import java.io.File;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
@@ -17,6 +18,11 @@ import javax.swing.JButton;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import javax.swing.JTextArea;
+import javax.swing.JScrollPane;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Client extends JFrame implements ActionListener, KeyListener{
 	private ByteArrayOutputStream baos;
@@ -26,13 +32,15 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private String id;
 	private int type;
 	private OutputStream out;
-	
+	private String imageFilePath;
+	private String filePath;
 	
 	private JPanel top;
 	private JPanel bottom;
 	private JPanel bottomButton;
 	private JPanel bottomChat;
-	private java.awt.List list;
+	private JScrollPane jscroll;
+	public static JTextArea list;
 	private JLabel ipLabel;
 	private JLabel portLabel;
 	private JLabel idLabel;
@@ -77,18 +85,21 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 
 	private void setFrame()
 	{
+		this.setTitle("Client");
 		this.ipLabel = new JLabel("ip ->");
 		this.ipField = new JTextField(12);
 		this.portLabel = new JLabel("port ->");
 		this.portField = new JTextField(3);
 		this.idLabel = new JLabel("id -> ");
 		this.idField = new JTextField(5);
-		this.startButton = new JButton("�� ��");
-		this.fileSendButton = new JButton("�� ��");
-		this.imageSendButton = new JButton("�� ��");
-		this.endButton = new JButton("�� ��");
+		this.startButton = new JButton("채팅 시작");
+		this.fileSendButton = new JButton("파일 전송");
+		this.imageSendButton = new JButton("사진 전송");
+		this.endButton = new JButton("채팅 종료");
 		this.chatField = new JTextField(25);
-		this.list = new java.awt.List();
+		list = new JTextArea();
+		list.setEditable(false);
+		this.jscroll = new JScrollPane(list);
 		this.top = new JPanel();
 		this.bottom = new JPanel();
 		this.bottomButton = new JPanel();
@@ -123,16 +134,30 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		this.fileSendButton.addActionListener(this);
 		this.imageSendButton.addActionListener(this);
 		this.chatField.addKeyListener(this);
-		//key ��� ��
-		// enter -> �� ��
+		//key 이벤트 처리
+		// enter -> 채팅 입력
 		
 		this.add("North", this.top);
-		this.add("Center", this.list);
+		this.add("Center", this.jscroll);
 		this.add("South", this.bottom);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.setVisible(true);
 	}
-
+	
+	//이미지 보여주는 창.
+	//상대가 보낼 때마다 이미지가 뜸.
+	public static void viewImage()
+	{
+		JFrame imageFrame = new JFrame("image");
+		
+		imageFrame.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		imageFrame.setVisible(true);
+	}
+	public static void addList(String s)
+	{
+		list.append(s + "\r\n");
+	}
+	
 	
 	@Override
 	public void actionPerformed(ActionEvent e)
@@ -148,11 +173,12 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		}
 		if(obj == this.fileSendButton)
 		{
-			
+			this.writeFileAsk(this.baos);
 		}
 		if(obj == this.imageSendButton)
 		{
-			
+			this.selectImage();
+			this.writeImage(this.baos);
 		}
 
 	}
@@ -173,6 +199,30 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 	
 	}
+	
+	/**
+	 * 이미지 파일을 선택하는 메소드
+	 * 이미지 파일이 아닌 경우 선택이 불가능하다.
+	 * 선택한 이미지 파일의 경로는 this.imageFile에 저장된다.
+	 */
+	private void selectImage()
+	{
+		JFileChooser chooser = new JFileChooser();
+		chooser.setFileFilter(new FileNameExtensionFilter("image","jpg","bmp","png","ico"));
+		if(chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
+		{
+			this.imageFilePath = chooser.getSelectedFile().toString();
+		}
+		System.out.println(this.imageFilePath);
+	}
+	private void selectFile()
+	{
+		JFileChooser chooser = new JFileChooser();
+		if(chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
+		{
+			this.filePath = chooser.getSelectedFile().toString();
+		}
+	}
 	private void writeJoin(OutputStream os)
 	{
 		this.baos.reset();
@@ -180,19 +230,18 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		this.ip = ipField.getText();
 		this.port = Integer.parseInt(portField.getText());
 		this.id = idField.getText();
-		byte[] name = id.getBytes();
 		
 		try
 		{	
-		
 			os.write(SOP);
 			os.write(JOIN);
 			os.write(FLAG10);
-			os.write(this.intToByteBuffer(name.length));
-			os.write(name);
+			os.write(this.intToByteBuffer(id.getBytes().length));
+			os.write(id.getBytes());
+			os.write(ZERO);
 			os.write(ZERO);
 			os.write(EOP);
-			// baos� ��� ��.	
+			// baos에 데이터 저장.	
 		}
 		catch(IOException ioe)
 		{
@@ -202,7 +251,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		
 		try
 		{
-			this.socket = new Socket(ip, this.port);
+			this.socket = new Socket(this.ip, this.port);
 			this.out = this.socket.getOutputStream();
 			ClientThread clientThread = new ClientThread(this.socket);
 			clientThread.start();
@@ -214,6 +263,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	
 		this.sendMessage(this.out);
 	}
+	
 	private void writeChat(OutputStream os, String chat)
 	{
 		this.baos.reset();
@@ -224,8 +274,10 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 			os.write(SOP);
 			os.write(CHAT);
 			os.write(FLAG10);
+			os.write(this.intToByteBuffer(this.id.getBytes().length));
+			os.write(this.id.getBytes());
 			os.write(ZERO);
-			os.write(temp.length);
+			os.write(this.intToByteBuffer(temp.length));
 			os.write(temp);
 			os.write(EOP);
 		}
@@ -237,8 +289,49 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		
 		this.sendMessage(this.out);
 	}
+	
 	private void writeImage(OutputStream os)
 	{
+		this.baos.reset();
+		File file = new File(this.imageFilePath);
+		byte[] data = new byte[(int)file.length()];
+		int n = 0;
+		
+		try
+		{
+			os.write(SOP);
+			os.write(IMAGE);
+			os.write(FLAG10);
+			os.write(this.intToByteBuffer(this.id.getBytes().length));
+			os.write(this.id.getBytes());
+			os.write(this.intToByteBuffer(this.imageFilePath.getBytes().length));
+			os.write(this.imageFilePath.getBytes());
+			os.write(this.intToByteBuffer((int)file.length()));
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
+		
+		try(FileInputStream fis = new FileInputStream(file))
+		{
+			while(true)
+			{
+				n = fis.read();
+	
+				if(n < 0)
+					break;
+				os.write(n);
+			}
+			
+			os.write(EOP);
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
+		
+		this.sendMessage(this.out);
 		
 	}
 	private void writeFileAsk(OutputStream os)
@@ -260,15 +353,15 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private void writeFinish(OutputStream os)
 	{
 		this.baos.reset();
-		byte[] name = this.id.getBytes();
 		
 		try
 		{
 			os.write(SOP);
 			os.write(FINISH);
 			os.write(FLAG10);
-			os.write(name.length);
-			os.write(name);
+			os.write(this.intToByteBuffer(this.id.getBytes().length));
+			os.write(this.id.getBytes());
+			os.write(ZERO);
 			os.write(ZERO);
 			os.write(EOP);
 		}
@@ -279,8 +372,21 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		}
 		
 		this.sendMessage(this.out);
+		this.closeChat();
 	}
-	
+	private void closeChat()
+	{
+		try
+		{
+			this.socket.close();
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+			if(this.socket != null)
+				this.socket = null;
+		}
+	}
 	private void sendMessage(OutputStream os)
 	{
 		try
@@ -328,4 +434,4 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		buffer[3] = (byte)((value & 0x000000ff));
 		return buffer;
 	}
-
+}

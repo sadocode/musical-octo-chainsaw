@@ -1,4 +1,3 @@
-
 package server;
 
 import java.io.OutputStream;
@@ -6,15 +5,20 @@ import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.List;
 import java.util.LinkedList;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Iterator;
+
+import javax.swing.JTextArea;
 import javax.swing.JFrame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
+import javax.swing.JScrollPane;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JPanel;
@@ -26,12 +30,12 @@ public class Server extends JFrame implements ActionListener{
 	protected Socket socket;
 	protected ServerSocket serverSocket;
 	
-	
+	private JScrollPane jscroll;
 	private JPanel top;
 	private JPanel bottom;
 	private JLabel portLabel;
 	private JTextField portField;
-	public static java.awt.List list;
+	public static JTextArea list;
 	private JButton startButton;
 	private JButton endButton;
 	
@@ -52,10 +56,26 @@ public class Server extends JFrame implements ActionListener{
 	{
 		Server server = new Server();
 	}
-	public static void broadcasting()
+	public static void broadcasting(byte[] packet)
 	{
+		Iterator it = clients.keySet().iterator();
 		
-		// Map clients의 모든 client로 메시지 전송.
+		while(it.hasNext())
+		{
+			try
+			{
+				OutputStream os = (OutputStream)clients.get(it.next());
+				os.write(packet);
+			}
+			catch(IOException ioe)
+			{
+				ioe.printStackTrace(System.out);
+			}
+		}
+	}
+	public static void addList(String s)
+	{
+		list.append(s+"\r\n");
 	}
 	public static void addClient(String id, OutputStream os)
 	{
@@ -68,7 +88,9 @@ public class Server extends JFrame implements ActionListener{
 		this.portField = new JTextField(3);
 		this.startButton = new JButton("Server Start");
 		this.endButton = new JButton("Server End");
-		this.list = new java.awt.List();
+		list = new JTextArea();
+		list.setEditable(false);
+		this.jscroll = new JScrollPane(list);
 		this.top = new JPanel();
 		this.bottom = new JPanel();
 		this.top.setSize(500,200);
@@ -80,7 +102,7 @@ public class Server extends JFrame implements ActionListener{
 		this.bottom.add(endButton);
 		this.setLayout(new BorderLayout());
 		this.add("North", top);
-		this.add("Center", list);
+		this.add("Center", this.jscroll);
 		this.add("South", bottom);
 		this.setTitle("Server");
 		this.setSize(500,600);
@@ -109,6 +131,7 @@ public class Server extends JFrame implements ActionListener{
 	private void startServer()
 	{
 		this.port = Integer.parseInt(portField.getText());
+		
 		addList("서버가 시작되었습니다.");
 		try
 		{
@@ -125,9 +148,9 @@ public class Server extends JFrame implements ActionListener{
 	private void endServer()
 	{
 		if(!clients.isEmpty())
-			broadcasting();
+			//broadcasting();
 			
-		list.add("서버가 종료됩니다.");
+		addList("서버가 종료되었습니다.");
 		
 		try
 		{
@@ -146,10 +169,7 @@ public class Server extends JFrame implements ActionListener{
 	{
 		
 	}
-	public static void addList(String s)
-	{
-		list.add(s);
-	}
+	
 	class StartThread extends Thread
 	{
 		@Override
