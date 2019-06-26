@@ -244,7 +244,7 @@ public class ServerThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		System.out.println("@" + this.byteBufferToInt(checkBuffer, 4));
+		System.out.println("@readSop@Sop : " + this.byteBufferToInt(checkBuffer, 4));
 		if(this.byteBufferToInt(checkBuffer, 4) != 0)
 			return 0;
 		
@@ -295,7 +295,7 @@ public class ServerThread extends Thread{
 			break;
 		}
 		
-		System.out.println("T@"+this.type);
+		System.out.println("@readType@Type : "+this.type);
 		if(this.type != -1)
 		{
 			os.write(this.type);
@@ -314,7 +314,8 @@ public class ServerThread extends Thread{
 		
 		if(n != 2)
 			return 0;
-	
+		
+		System.out.println("@readFlag@Flag : " + this.flag[0] + this.flag[1]);
 		os.write(this.flag);
 		return 2;
 	}
@@ -337,7 +338,7 @@ public class ServerThread extends Thread{
 		
 		
 		this.nameSize = this.byteBufferToInt(checkBuffer, 4);
-		System.out.println("NS@"+this.nameSize);
+		System.out.println("@readNsize@nameSize :"+this.nameSize);
 		os.write(checkBuffer);
 		return n;
 	}
@@ -366,7 +367,7 @@ public class ServerThread extends Thread{
 		{
 			this.name = new String(this.nameByte);
 		}
-		
+		System.out.println("@readName@name : " + this.name);
 		os.write(this.nameByte);
 		return n;
 	}
@@ -381,6 +382,7 @@ public class ServerThread extends Thread{
 			return 0;
 		
 		this.fileNameSize = this.byteBufferToInt(checkBuffer, 4);
+		System.out.println("@readFnsize@fileNameSize :"+this.fileNameSize);
 		os.write(checkBuffer);
 		return n;
 	}
@@ -393,6 +395,7 @@ public class ServerThread extends Thread{
 		
 		if(n != this.fileNameSize)
 			return 0;
+		System.out.println("@readFname@fileName :" + new String(this.fileNameByte));
 		os.write(this.fileNameByte);
 		return n;
 	}
@@ -412,6 +415,7 @@ public class ServerThread extends Thread{
 			return 0;
 		System.out.println("&&"+this.byteBufferToLong(checkBuffer, 4));
 		this.fileSize = this.byteBufferToLong(checkBuffer, 4);
+		System.out.println("@readSize@fileSize :" + this.fileSize);
 		os.write(checkBuffer);
 		return n;
 	}
@@ -427,7 +431,7 @@ public class ServerThread extends Thread{
 		int n = 0;
 		byte[] dataBuffer;
 		
-		if(this.type == CHAT)
+		if(this.type == CHAT || this.type == IMAGE)
 		{
 			dataBuffer = new byte[(int)this.fileSize];
 			n = is.read(dataBuffer, 0, (int)this.fileSize);
@@ -435,9 +439,13 @@ public class ServerThread extends Thread{
 			if(n != (int)this.fileSize)
 				return 0;
 			os.write(dataBuffer);
+			System.out.println("@readData@data :" + dataBuffer);
 			return (int)this.fileSize;
 		}
-		
+		if(this.type == FILE_SEND)
+		{
+			
+		}
 		return (int)this.fileSize;///////
 		
 		/*
@@ -495,6 +503,7 @@ public class ServerThread extends Thread{
 		if(this.byteBufferToInt(checkBuffer, 4) != (int)0xffffffff)
 			return 0;
 		os.write(checkBuffer);
+		System.out.println("@readEOP@EOP");
 		return n;
 	}
 

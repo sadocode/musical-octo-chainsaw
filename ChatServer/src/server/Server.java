@@ -59,7 +59,6 @@ public class Server extends JFrame implements ActionListener{
 	public static void broadcasting(byte[] packet)
 	{
 		Iterator it = clients.keySet().iterator();
-		
 		while(it.hasNext())
 		{
 			try

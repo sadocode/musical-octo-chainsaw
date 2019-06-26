@@ -87,6 +87,12 @@ public class ClientThread extends Thread{
 	
 		}
 		
+		if(this.type == IMAGE)
+		{
+			sb = new StringBuilder("[").append(this.name).append("]님이 ").append(new String(this.fileNameByte)).append("를 보내셨습니다.");
+			Client.addList(sb.toString());
+			Client.viewImage(new String(this.fileNameByte), this.fileData);
+		}
 		if(this.type == FINISH)
 		{
 			sb = new StringBuilder("");
@@ -373,7 +379,7 @@ public class ClientThread extends Thread{
 	{
 		int n = 0;
 		
-		if(this.type == CHAT)
+		if(this.type == CHAT || this.type == IMAGE)
 		{
 			this.fileData = new byte[(int)this.fileSize];
 			n = is.read(this.fileData, 0, (int)this.fileSize);
@@ -382,6 +388,15 @@ public class ClientThread extends Thread{
 				return 0;
 			
 			return (int)this.fileSize;
+		}
+		if(this.type == FILE_SEND)
+		{
+			
+		}
+		else
+		{
+			System.out.println("readData@@@ type error");
+			return 0;
 		}
 		return (int)this.fileSize;///////
 		

@@ -1,5 +1,6 @@
 package client;
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,6 +24,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.awt.Graphics;
 
 public class Client extends JFrame implements ActionListener, KeyListener{
 	private ByteArrayOutputStream baos;
@@ -32,8 +36,8 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private String id;
 	private int type;
 	private OutputStream out;
-	private String imageFilePath;
 	private String filePath;
+	private String fileName;
 	
 	private JPanel top;
 	private JPanel bottom;
@@ -144,12 +148,53 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		this.setVisible(true);
 	}
 	
+
+	public static String detectImageType(String title)
+	{
+		if(title.endsWith("jpg"))
+			return "jpg";
+		else if(title.endsWith("png"))
+			return "png";
+		else if(title.endsWith("bmp"))
+			return "bmp";
+		else if(title.endsWith("ico"))
+			return "ico";
+		else
+			return "error";
+	}
+
 	//이미지 보여주는 창.
 	//상대가 보낼 때마다 이미지가 뜸.
-	public static void viewImage()
+	public static void viewImage(String title, byte[] buffer)
 	{
 		JFrame imageFrame = new JFrame("image");
+		imageFrame.setTitle(title);
 		
+		
+		String type = detectImageType(title);		
+		if(type == "error")
+			return;
+		
+		ByteArrayInputStream image;
+		BufferedImage bi;
+		JPanel panel;
+		try
+		{
+			image = new ByteArrayInputStream(buffer);
+			bi = ImageIO.read(image);
+			panel = new JPanel() {
+				public void paintComponent(Graphics g) {
+					super.paintComponent(g);
+					g.drawImage(bi, 0, 0, null);
+				}
+			};
+			imageFrame.add(panel);
+		}
+		catch(IOException ioe)
+		{
+			ioe.printStackTrace(System.out);
+		}
+		imageFrame.setLocation(700,300);
 		imageFrame.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		imageFrame.setVisible(true);
 	}
@@ -211,9 +256,11 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		chooser.setFileFilter(new FileNameExtensionFilter("image","jpg","bmp","png","ico"));
 		if(chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
 		{
-			this.imageFilePath = chooser.getSelectedFile().toString();
+			this.filePath = chooser.getSelectedFile().toString();
 		}
-		System.out.println(this.imageFilePath);
+		int temp = this.filePath.lastIndexOf("\\");
+		this.fileName = this.filePath.substring(temp + 1);
+		System.out.println(this.fileName);
 	}
 	private void selectFile()
 	{
@@ -222,6 +269,10 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		{
 			this.filePath = chooser.getSelectedFile().toString();
 		}
+		int temp = this.filePath.lastIndexOf("\\");
+		System.out.println("### temp : " + temp);
+		this.fileName = this.filePath.substring(temp);
+		System.out.println(this.fileName);
 	}
 	private void writeJoin(OutputStream os)
 	{
@@ -293,7 +344,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private void writeImage(OutputStream os)
 	{
 		this.baos.reset();
-		File file = new File(this.imageFilePath);
+		File file = new File(this.filePath);
 		byte[] data = new byte[(int)file.length()];
 		int n = 0;
 		
@@ -304,8 +355,8 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 			os.write(FLAG10);
 			os.write(this.intToByteBuffer(this.id.getBytes().length));
 			os.write(this.id.getBytes());
-			os.write(this.intToByteBuffer(this.imageFilePath.getBytes().length));
-			os.write(this.imageFilePath.getBytes());
+			os.write(this.intToByteBuffer(this.fileName.getBytes().length));
+			os.write(this.fileName.getBytes());
 			os.write(this.intToByteBuffer((int)file.length()));
 		}
 		catch(IOException ioe)
@@ -323,7 +374,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 					break;
 				os.write(n);
 			}
-			
+			System.out.println("why it doesnt work? ");
 			os.write(EOP);
 		}
 		catch(IOException ioe)
@@ -391,7 +442,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 		try
 		{
-			System.out.println(this.getBytes());
+			System.out.println("@sendMessage@" +this.getBytes());
 			os.write(this.getBytes());
 		}
 		catch(IOException ioe)
