@@ -382,12 +382,14 @@ public class ClientThread extends Thread{
 		if(this.type == CHAT || this.type == IMAGE)
 		{
 			this.fileData = new byte[(int)this.fileSize];
-			n = is.read(this.fileData, 0, (int)this.fileSize);
-			
-			if(n != (int)this.fileSize)
-				return 0;
-			
-			return (int)this.fileSize;
+			int index = 0;
+			while(true)
+			{
+				n = is.read();
+				this.fileData[index] = (byte)n;
+				if(++index == (int)this.fileSize)
+					break;
+			}
 		}
 		if(this.type == FILE_SEND)
 		{
@@ -399,40 +401,6 @@ public class ClientThread extends Thread{
 			return 0;
 		}
 		return (int)this.fileSize;///////
-		
-		/*
-		if(temp > 0)
-		{
-			dataBuffer = new byte[temp];
-			n = is.read(dataBuffer, 0, temp);
-			
-			if(n != temp)
-				return 0;
-			System.arraycopy(dataBuffer, 0, this.fileData, 0, temp);
-			dataBuffer = null;
-			return temp;
-		}
-		else 
-		{
-			temp = (temp & 0x7fffffff);
-		
-			dataBuffer = new byte[temp];
-			n = is.read(dataBuffer, 0, temp);
-			
-			if(n != temp)
-				return 0;
-			
-			int temp2 = 0x40000000;
-			//temp2 만큼 그냥 두 번 더 받아서
-			//temp + temp2 + temp2 이렇게 둬야하나 싶은데.
-			
-			
-			//ADD MORE!!!#!@#!#
-			this.fileSize += temp;
-			
-				
-		}
-		*/
 		
 	}
 	

@@ -25,6 +25,8 @@ public class ServerThread extends Thread{
 	
 	private byte[] flag;
 	
+	public static final int MAX_READ = 65536;
+	
 	public static final byte JOIN = 0;
 	public static final byte CHAT = 1;
 	public static final byte IMAGE = 2;
@@ -434,10 +436,33 @@ public class ServerThread extends Thread{
 		if(this.type == CHAT || this.type == IMAGE)
 		{
 			dataBuffer = new byte[(int)this.fileSize];
-			n = is.read(dataBuffer, 0, (int)this.fileSize);
+				
+			/*
+			int index = 0;
+			while(true)
+			{
+				n = is.read(dataBuffer, index, (int) this.fileSize);
+				index += n;
+				
+				if(n != MAX_READ)
+					break;
+			}
 			
-			if(n != (int)this.fileSize)
+			if(index != (int)this.fileSize) {
+				System.out.println("index => " + index);
 				return 0;
+			}
+				*/
+			
+			int index = 0;
+			while(true)
+			{
+				n = is.read();
+				dataBuffer[index] = (byte)n;
+				if(++index == (int)this.fileSize)
+					break;
+			}
+			
 			os.write(dataBuffer);
 			System.out.println("@readData@data :" + dataBuffer);
 			return (int)this.fileSize;

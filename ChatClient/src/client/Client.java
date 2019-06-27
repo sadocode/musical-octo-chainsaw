@@ -189,13 +189,13 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 				}
 			};
 			imageFrame.add(panel);
+			imageFrame.setSize(bi.getWidth(), bi.getHeight());
 		}
 		catch(IOException ioe)
 		{
 			ioe.printStackTrace(System.out);
 		}
 		imageFrame.setLocation(700,300);
-		imageFrame.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		imageFrame.setVisible(true);
 	}
 	public static void addList(String s)
