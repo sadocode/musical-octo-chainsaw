@@ -31,10 +31,11 @@ import java.awt.Graphics;
 public class Client extends JFrame implements ActionListener, KeyListener{
 	private ByteArrayOutputStream baos;
 	private Socket socket;
-	private int port;
 	private String ip;
+	private int port;
 	private String id;
 	private int type;
+	private byte[] data;
 	private OutputStream out;
 	private String filePath;
 	private String fileName;
@@ -244,7 +245,18 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 	
 	}
-	
+	private int getPacketSize()
+	{
+		int packetSize = 27 + this.id.getBytes().length;
+		
+		switch(this.type)
+		{
+		case JOIN:
+			break;
+		case CHAT:
+			packetSize += this.dataSize;
+		}
+	}
 	/**
 	 * 이미지 파일을 선택하는 메소드
 	 * 이미지 파일이 아닌 경우 선택이 불가능하다.
@@ -277,14 +289,16 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private void writeJoin(OutputStream os)
 	{
 		this.baos.reset();
-	
 		this.ip = ipField.getText();
 		this.port = Integer.parseInt(portField.getText());
 		this.id = idField.getText();
-		
+		int packetSize = this.getPacketSize();
+		byte[]
 		try
 		{	
+			
 			os.write(SOP);
+			os.write(this.intToByteBuffer(this.getPacketSize()));
 			os.write(JOIN);
 			os.write(FLAG10);
 			os.write(this.intToByteBuffer(id.getBytes().length));
@@ -323,6 +337,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		try
 		{
 			os.write(SOP);
+			os.write(this.intToByteBuffer(this.getPacketSize()));
 			os.write(CHAT);
 			os.write(FLAG10);
 			os.write(this.intToByteBuffer(this.id.getBytes().length));
@@ -345,12 +360,13 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 		this.baos.reset();
 		File file = new File(this.filePath);
-		byte[] data = new byte[(int)file.length()];
+		this.data = new byte[(int)file.length()];
 		int n = 0;
 		
 		try
 		{
 			os.write(SOP);
+			os.write(this.intToByteBuffer(this.getPacketSize()));
 			os.write(IMAGE);
 			os.write(FLAG10);
 			os.write(this.intToByteBuffer(this.id.getBytes().length));

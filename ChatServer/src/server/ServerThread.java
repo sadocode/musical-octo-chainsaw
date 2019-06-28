@@ -14,16 +14,18 @@ public class ServerThread extends Thread{
 	private InputStream is;
 	private OutputStream os;
 	
+	private int packetSize;
 	public byte type;
+	private byte[] flag;
 	private String name;
 	private int nameSize;
 	private byte[] nameByte;
 	private int fileNameSize;
 	private byte[] fileNameByte;
-	private long fileSize;
-	private byte[] fileData;
+	private long dataSize;
+	private byte[] data;
 	
-	private byte[] flag;
+	
 	
 	public static final int MAX_READ = 65536;
 	
@@ -96,15 +98,16 @@ public class ServerThread extends Thread{
 	
 	public synchronized void reset()
 	{
+		this.packetSize = 0;
 		this.type = 0;
 		this.flag = null;
-		this.name = "";
 		this.nameSize = 0;
+		this.name = null;
 		this.nameByte = null;
 		this.fileNameSize = 0;
 		this.fileNameByte = null;
-		this.fileSize = 0;
-		this.fileData = null;
+		this.dataSize = 0;
+		this.data = null;
 		this.baos.reset();
 	}
 	
@@ -125,17 +128,26 @@ public class ServerThread extends Thread{
 		int temp = 0;
 		this.baos.reset();
 		
-		System.out.println("1");
-		if((temp = this.readSop(is, this.baos)) != 0)
+		System.out.println("0");
+		///SOP(4)
+		if((temp = this.readSOP(is, this.baos)) != 0)
 			size += temp;
 		else
 		{
 			this.reset();
 			return temp;
 		}
-			
-		
+		System.out.println("1");
+		///packetSize(4)
+		if((temp = this.readPacketSize(is, os)) != 0)
+			size += temp;
+		else
+		{
+			this.reset();
+			return temp;
+		}
 		System.out.println("2");
+		///type(1)
 		if((temp = this.readType(is, this.baos)) != 0)
 			size += temp;
 		else
@@ -144,49 +156,68 @@ public class ServerThread extends Thread{
 			return temp;
 		}
 		System.out.println("3");
-		
-		if((temp = this.readFlag(is, this.baos)) != 0)
-			size += temp;
-		else
+		///type == JOIN or FINISH
+		if(this.type == JOIN || this.type == FINISH)
 		{
-			this.reset();
-			return temp;
-		}
-		
-		System.out.println("4");
-		
-		if((temp = this.readNsize(is, this.baos)) != 0)
-			size += temp;
-		else
-		{
-			this.reset();
-			return temp;
-		}
-		
-		
-		System.out.println("5");
-		if((temp = this.readName(is, this.baos)) != 0)
-			size += temp;
-		else
-		{
-			this.reset();
-			return temp;
-		}
-
-		
-		System.out.println("6");
-		if((temp = this.readFnsize(is, this.baos)) != 0)
-			size += temp;
-		else 
-		{
-			this.reset();
-			return temp;
-		}
-		
-		if(this.fileNameSize != 0)
-		{
+			System.out.println("4");
+			//flag(2)
+			if((temp = this.readFlag(is, this.baos)) != 0)
+				size += temp;
+			else
+			{
+				this.reset();
+				return temp;
+			}
+			System.out.println("5");
+			///nameSize(4)
+			if((temp = this.readNameSize(is, this.baos)) != 0)
+				size += temp;
+			else
+			{
+				this.reset();
+				return temp;
+			}
+			System.out.println("6");
+			///name(nameSize)
+			if((temp = this.readName(is, this.baos)) != 0)
+				size += temp;
+			else
+			{
+				this.reset();
+				return temp;
+			}
 			System.out.println("7");
-			if((temp = this.readFname(is, this.baos)) != 0)
+			///fileNameSize(4)
+			if((temp = this.readFileNameSize(is, this.baos)) != 0)
+				size += temp;
+			else 
+			{
+				this.reset();
+				return temp;
+			}
+			System.out.println("8");
+			///dataSize(4)
+			if((temp = this.readDataSize(is, this.baos)) != 0)
+				size += temp;
+			else
+			{
+				this.reset();
+				return temp;
+			}
+			System.out.println("9");
+			///EOP(4)
+			if((temp = this.readEOP(is, this.baos)) != 0)
+				size += temp;
+			else
+			{
+				this.reset();
+				return temp;
+			}
+		}//JOIN or FINISH
+		else
+		{
+			System.out.println("10");
+			if((temp = this.readRemainder(is, os)) != 0)
 				size += temp;
 			else
 			{
@@ -194,38 +225,6 @@ public class ServerThread extends Thread{
 				return temp;
 			}
 		}
-		
-		System.out.println("8");
-		if((temp = this.readSize(is, this.baos)) != 0)
-			size += temp;
-		else
-		{
-			this.reset();
-			return temp;
-		}
-		
-		
-		if(this.fileSize != 0)
-		{
-			System.out.println("9");
-			if((temp = this.readData(is, this.baos)) != 0)
-				size += temp;
-			else 
-			{
-				this.reset();
-				return temp;
-			}
-		}
-		
-		System.out.println("10");
-		if((temp = this.readEOP(is, this.baos)) != 0)
-			size += temp;
-		else
-		{
-			this.reset();
-			return temp;
-		}
-		
 		System.out.println("11");
 		return size;
 	}
@@ -237,7 +236,7 @@ public class ServerThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readSop(InputStream is, OutputStream os) throws IOException
+	private int readSOP(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -254,6 +253,19 @@ public class ServerThread extends Thread{
 		return n;
 	}
 	
+	private int readPacketSize(InputStream is, OutputStream os) throws IOException
+	{
+		int n = 0;
+		byte[] checkBuffer = new byte[4];
+		n = is.read(checkBuffer, 0, 4);
+		
+		if(n != 4)
+			return 0;
+		
+		this.packetSize = this.byteBufferToInt(checkBuffer, 4);
+		os.write(checkBuffer);
+		return n;
+	}
 	/**
 	 * 1바이트에 해당하는 TYPE을 읽고 정상이면 1, 오류면 0을 반환.
 	 * this.type 값을 초기화해준다.
@@ -269,28 +281,28 @@ public class ServerThread extends Thread{
 		switch(n)
 		{
 		case 0:
-			this.type = this.JOIN;
+			this.type = JOIN;
 			break;
 		case 1:
-			this.type = this.CHAT;
+			this.type = CHAT;
 			break;
 		case 2:
-			this.type = this.IMAGE;
+			this.type = IMAGE;
 			break;
 		case 3:
-			this.type = this.FILE_ASK;
+			this.type = FILE_ASK;
 			break;
 		case 4:
-			this.type = this.FILE_ACCEPT;
+			this.type = FILE_ACCEPT;
 			break;
 		case 5:
-			this.type = this.FILE_DECLINE;
+			this.type = FILE_DECLINE;
 			break;
 		case 6:
-			this.type = this.FILE_SEND;
+			this.type = FILE_SEND;
 			break;
 		case 7:
-			this.type = this.FINISH;
+			this.type = FINISH;
 			break;
 		default:
 			this.type = -1;
@@ -328,7 +340,7 @@ public class ServerThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readNsize(InputStream is, OutputStream os)throws IOException
+	private int readNameSize(InputStream is, OutputStream os)throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -374,7 +386,7 @@ public class ServerThread extends Thread{
 		return n;
 	}
 	
-	private int readFnsize(InputStream is, OutputStream os) throws IOException
+	private int readFileNameSize(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -389,7 +401,7 @@ public class ServerThread extends Thread{
 		return n;
 	}
 	
-	private int readFname(InputStream is, OutputStream os) throws IOException
+	private int readFileName(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
 		this.fileNameByte = new byte[this.fileNameSize];
@@ -407,7 +419,7 @@ public class ServerThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readSize(InputStream is, OutputStream os)throws IOException
+	private int readDataSize(InputStream is, OutputStream os)throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -416,97 +428,28 @@ public class ServerThread extends Thread{
 		if(n != 4)
 			return 0;
 		System.out.println("&&"+this.byteBufferToLong(checkBuffer, 4));
-		this.fileSize = this.byteBufferToLong(checkBuffer, 4);
-		System.out.println("@readSize@fileSize :" + this.fileSize);
+		this.dataSize = this.byteBufferToLong(checkBuffer, 4);
+		System.out.println("@readSize@fileSize :" + this.dataSize);
 		os.write(checkBuffer);
 		return n;
 	}
 	
 	/**
-	 * fileSize에 해당하는 만큼의 바이트를 읽고, fileData를 초기화한다.
+	 * dataSize에 해당하는 만큼의 바이트를 읽고, data를 초기화한다.
 	 * @param is
-	 * @return 정상 -> fileSize, 오류 -> 0
+	 * @return 정상 -> dataSize, 오류 -> 0
 	 * @throws IOException
 	 */
 	private int readData(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
-		byte[] dataBuffer;
+		this.data = new byte[(int)this.dataSize];
+		n = is.read(this.data, 0, (int)this.dataSize);
 		
-		if(this.type == CHAT || this.type == IMAGE)
-		{
-			dataBuffer = new byte[(int)this.fileSize];
-				
-			/*
-			int index = 0;
-			while(true)
-			{
-				n = is.read(dataBuffer, index, (int) this.fileSize);
-				index += n;
-				
-				if(n != MAX_READ)
-					break;
-			}
-			
-			if(index != (int)this.fileSize) {
-				System.out.println("index => " + index);
-				return 0;
-			}
-				*/
-			
-			int index = 0;
-			while(true)
-			{
-				n = is.read();
-				dataBuffer[index] = (byte)n;
-				if(++index == (int)this.fileSize)
-					break;
-			}
-			
-			os.write(dataBuffer);
-			System.out.println("@readData@data :" + dataBuffer);
-			return (int)this.fileSize;
-		}
-		if(this.type == FILE_SEND)
-		{
-			
-		}
-		return (int)this.fileSize;///////
+		if(n != this.dataSize)
+			return 0;
 		
-		/*
-		if(temp > 0)
-		{
-			dataBuffer = new byte[temp];
-			n = is.read(dataBuffer, 0, temp);
-			
-			if(n != temp)
-				return 0;
-			System.arraycopy(dataBuffer, 0, this.fileData, 0, temp);
-			dataBuffer = null;
-			return temp;
-		}
-		else 
-		{
-			temp = (temp & 0x7fffffff);
-		
-			dataBuffer = new byte[temp];
-			n = is.read(dataBuffer, 0, temp);
-			
-			if(n != temp)
-				return 0;
-			
-			int temp2 = 0x40000000;
-			//temp2 만큼 그냥 두 번 더 받아서
-			//temp + temp2 + temp2 이렇게 둬야하나 싶은데.
-			
-			
-			//ADD MORE!!!#!@#!#
-			this.fileSize += temp;
-			
-				
-		}
-		*/
-		
+		return (int)this.dataSize;
 	}
 	
 	/**
@@ -531,7 +474,30 @@ public class ServerThread extends Thread{
 		System.out.println("@readEOP@EOP");
 		return n;
 	}
-
+	
+	/**
+	 * SOP(4) + packetSize(4) + type(1)
+	 * => 9
+	 * @param is
+	 * @param os
+	 * @return
+	 * @throws IOException
+	 */
+	private int readRemainder(InputStream is, OutputStream os) throws IOException
+	{
+		int header = 9;
+		int n = 0;
+		byte[] buffer = new byte[(int)this.packetSize - header];
+	
+		n = is.read(buffer, 0, buffer.length);
+		
+		if(n != buffer.length)
+			return 0;
+		
+		os.write(buffer);
+		buffer = null;
+		return ((int)this.packetSize - header);
+	}
 	public String getString()
 	{
 		try
@@ -551,7 +517,6 @@ public class ServerThread extends Thread{
 	{
 		int value = 0;
 		int index = size - 1;
-		int x = 0;
 		while(index >= 0)
 		{
 			value += (int)((buffer[index] & 0xFF) << 8 * (size - index-- - 1));
