@@ -1,5 +1,6 @@
 package client;
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -27,25 +28,40 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.awt.Graphics;
-
+import java.util.Map;
+/**
+ * Client에서 챗팅이나 기타 행동을 하면, 서버로 write해준다.
+ * read는 ClientThread클래스에서만 하고 Client에서는 하지 않는다.
+ * 
+ * @author hkj
+ *
+ */
 public class Client extends JFrame implements ActionListener, KeyListener{
 	private ByteArrayOutputStream baos;
 	private Socket socket;
-	private String ip;
-	private int port;
-	private String id;
-	private int type;
-	private byte[] data;
 	private OutputStream out;
+	private FileP2P filep2p;
+	
+	private Map<String, String> sendFileMap;
+	private Map<String, String> receiveFileMap;
+	
+	private int port;
+	private String ip;
+	private String id;
+
+	private int packetSize;
+	private byte type;
 	private String filePath;
 	private String fileName;
+	private long dataSize;
 	
+	/// Frame을 구성하는 변수 ///
 	private JPanel top;
 	private JPanel bottom;
 	private JPanel bottomButton;
 	private JPanel bottomChat;
 	private JScrollPane jscroll;
-	public static JTextArea list;
+	private JTextArea list;
 	private JLabel ipLabel;
 	private JLabel portLabel;
 	private JLabel idLabel;
@@ -58,6 +74,11 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private JButton imageSendButton;
 	private JTextField chatField;
 	
+	private JButton acceptButton;
+	private JButton declineButton;
+	///
+	
+	///////// 상수 
 	private static final byte[] SOP = {0x00, 0x00, 0x00, 0x00};
 	private static final byte[] EOP = {(byte)0xff, (byte)0xff, (byte)0xff, (byte)0xff};
 	
@@ -75,19 +96,26 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	public static final byte[] FLAG10 = {0x01, 0x00};
 	public static final byte[] FLAG00 = {0x00, 0x00};
 	public static final byte[] FLAG01 = {0x00, 0x01};
+	////////
 	
 	public Client()
 	{
 		this.baos = new ByteArrayOutputStream();
+		this.sendFileMap = new HashMap<String, String>();
+		this.receiveFileMap = new HashMap<String, String>();
 		this.setFrame();
-	}
-	
-	public static void main(String[] args) 
-	{
-		Client client = new Client();
 		
 	}
 
+	public static void main(String[] args) 
+	{
+		Client client = new Client();
+	}
+
+	public String getIp()
+	{
+		return this.ip;
+	}
 	private void setFrame()
 	{
 		this.setTitle("Client");
@@ -102,8 +130,8 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		this.imageSendButton = new JButton("사진 전송");
 		this.endButton = new JButton("채팅 종료");
 		this.chatField = new JTextField(25);
-		list = new JTextArea();
-		list.setEditable(false);
+		this.list = new JTextArea();
+		this.list.setEditable(false);
 		this.jscroll = new JScrollPane(list);
 		this.top = new JPanel();
 		this.bottom = new JPanel();
@@ -145,37 +173,68 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		this.add("North", this.top);
 		this.add("Center", this.jscroll);
 		this.add("South", this.bottom);
+		this.setLocation(400, 400);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.setVisible(true);
 	}
 	
-
-	public static String detectImageType(String title)
+	/**
+	 * type == FILE_ASK를 받았을 경우에 열리는 창.
+	 * 
+	 * @param name
+	 * @param fileName
+	 * @param fileSize
+	 */
+	public void viewFileInfo(String id, String name, String fileName, long fileSize)
 	{
-		if(title.endsWith("jpg"))
-			return "jpg";
-		else if(title.endsWith("png"))
-			return "png";
-		else if(title.endsWith("bmp"))
-			return "bmp";
-		else if(title.endsWith("ico"))
-			return "ico";
-		else
-			return "error";
-	}
-
+		JFrame fileInfoFrame = new JFrame("file");
+		JPanel top = new JPanel();
+		JPanel bottom = new JPanel();
+		fileInfoFrame.setLayout(new BorderLayout());
+		
+		double temp = 0;
+		StringBuilder info = new StringBuilder(name).append("님이 ").append(id).append("에게 ").append(fileName).append("(");
+		if(fileSize < 1024)
+			info.append(fileSize).append("bytes) 파일을 전송하였습니다.");
+		if(fileSize >= 1024 && fileSize < 1024 * 1024)
+		{
+			temp = fileSize/1024;
+			info.append(temp).append("KB) 파일을 전송하였습니다.");
+		}
+		if(fileSize >= 1024 * 1024)
+		{
+			temp = fileSize / (1024 * 1024);
+			info.append(temp).append("MB) 파일을 전송하였습니다.");
+		}
+		
+		JLabel infoLabel = new JLabel(info.toString());
+		top.add(infoLabel);
+		this.acceptButton = new JButton("수신");
+		this.declineButton = new JButton("거부");
+		bottom.add(this.acceptButton);
+		bottom.add(this.declineButton);
+		this.acceptButton.addActionListener(this);
+		this.declineButton.addActionListener(this);
+		fileInfoFrame.add("North", top);
+		fileInfoFrame.add("South", bottom);
+		
+		fileInfoFrame.setSize(500, 100);
+		top.setSize(500, 50);
+		bottom.setSize(500, 50);
+		fileInfoFrame.setVisible(true);
+	}	
+	
 	//이미지 보여주는 창.
-	//상대가 보낼 때마다 이미지가 뜸.
-	public static void viewImage(String title, byte[] buffer)
+		//상대가 보낼 때마다 이미지가 뜸.
+	public void viewImage(String title, byte[] buffer)
 	{
 		JFrame imageFrame = new JFrame("image");
 		imageFrame.setTitle(title);
-		
-		
-		String type = detectImageType(title);		
+
+		String type = this.detectImageType(title);		
 		if(type == "error")
 			return;
-		
+
 		ByteArrayInputStream image;
 		BufferedImage bi;
 		JPanel panel;
@@ -199,8 +258,25 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		imageFrame.setLocation(700,300);
 		imageFrame.setVisible(true);
 	}
-	public static void addList(String s)
+	
+	public String detectImageType(String title)
 	{
+		if(title.endsWith("jpg"))
+			return "jpg";
+		else if(title.endsWith("png"))
+			return "png";
+		else if(title.endsWith("bmp"))
+			return "bmp";
+		else if(title.endsWith("ico"))
+			return "ico";
+		else
+			return "error";
+	}
+	
+	public void addList(String s)
+	{
+		if(s == null)
+			throw new java.lang.NullPointerException("addList parameter is null");
 		list.append(s + "\r\n");
 	}
 	
@@ -219,14 +295,25 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		}
 		if(obj == this.fileSendButton)
 		{
+			this.selectFile();
 			this.writeFileAsk(this.baos);
+			this.saveSendFileInfo();
 		}
 		if(obj == this.imageSendButton)
 		{
 			this.selectImage();
 			this.writeImage(this.baos);
 		}
-
+		if(obj == acceptButton)
+		{
+			System.out.println("ACCEPT BUTTON CLICKED!");
+			this.writeFileAccept(this.baos, this.fileName);
+		}
+		if(obj == declineButton)
+		{
+			System.out.println("DECLINE BUTTON CLICKED!");
+			this.writeFileDecline(this.baos);
+		}
 	}
 	@Override
 	public void keyPressed(KeyEvent e) 
@@ -245,17 +332,29 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 	
 	}
-	private int getPacketSize()
+
+	//애매하네 이거.
+	private void reset()
 	{
-		int packetSize = 27 + this.id.getBytes().length;
-		
-		switch(this.type)
-		{
-		case JOIN:
-			break;
-		case CHAT:
-			packetSize += this.dataSize;
-		}
+		this.baos.reset();
+		this.packetSize = 0;
+		this.type = 0;
+		this.dataSize = 0;		
+		this.fileName = null;
+		this.filePath = null;
+	}
+	
+	protected void saveSendFileInfo()
+	{
+		this.sendFileMap.put(this.fileName, this.filePath);
+	}
+	protected String getSendFilePath(String fileName)
+	{
+		return this.sendFileMap.get(fileName);
+	}
+	protected void saveReceiveFileInfo()
+	{
+		this.receiveFileMap.put(this.)
 	}
 	/**
 	 * 이미지 파일을 선택하는 메소드
@@ -272,7 +371,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		}
 		int temp = this.filePath.lastIndexOf("\\");
 		this.fileName = this.filePath.substring(temp + 1);
-		System.out.println(this.fileName);
+		System.out.println("selectImage@@fileName : " + this.fileName);
 	}
 	private void selectFile()
 	{
@@ -282,31 +381,73 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 			this.filePath = chooser.getSelectedFile().toString();
 		}
 		int temp = this.filePath.lastIndexOf("\\");
-		System.out.println("### temp : " + temp);
-		this.fileName = this.filePath.substring(temp);
-		System.out.println(this.fileName);
+		this.fileName = this.filePath.substring(temp + 1);
+		System.out.println("selectFile@@fileName : " + this.fileName);
 	}
+	
+	/**
+	 * 27bytes 헤더
+	 * SOP(4) + packetSize(4) + type(1) + flag(2)
+	 *  + nameSize(4) + fileNameSize(4) + dataSize(4) = 27bytes
+	 * @return
+	 */
+	private int getPacketSize()
+	{
+		int packetSize = 27;
+		
+		if(this.id != null)
+			packetSize += this.id.getBytes().length;
+		if(this.fileName != null)
+			packetSize += this.fileName.getBytes().length;
+		if(this.dataSize != 0)
+			packetSize += this.dataSize;
+		
+		return packetSize;
+	}
+	
 	private void writeJoin(OutputStream os)
 	{
-		this.baos.reset();
+		this.reset();
+	
 		this.ip = ipField.getText();
 		this.port = Integer.parseInt(portField.getText());
 		this.id = idField.getText();
-		int packetSize = this.getPacketSize();
-		byte[]
+		this.packetSize = this.getPacketSize();
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
+		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = JOIN;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		System.arraycopy(ZERO, 0, header, offset, 4);
+		offset += 4;
+		
+		//데이터 사이즈
+		System.arraycopy(ZERO, 0, header, offset, 4);
+		offset += 4;
+		
 		try
 		{	
-			
-			os.write(SOP);
-			os.write(this.intToByteBuffer(this.getPacketSize()));
-			os.write(JOIN);
-			os.write(FLAG10);
-			os.write(this.intToByteBuffer(id.getBytes().length));
-			os.write(id.getBytes());
-			os.write(ZERO);
-			os.write(ZERO);
+			os.write(header, 0, header.length);
+			os.write(id.getBytes());//NAME
 			os.write(EOP);
-			// baos에 데이터 저장.	
 		}
 		catch(IOException ioe)
 		{
@@ -318,7 +459,7 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		{
 			this.socket = new Socket(this.ip, this.port);
 			this.out = this.socket.getOutputStream();
-			ClientThread clientThread = new ClientThread(this.socket);
+			ClientThread clientThread = new ClientThread(this, this.socket, this.id);
 			clientThread.start();
 		}
 		catch(IOException ioe)
@@ -331,19 +472,44 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	
 	private void writeChat(OutputStream os, String chat)
 	{
-		this.baos.reset();
+		this.reset();
 		byte[] temp = chat.getBytes();
+		this.dataSize = temp.length;
+		this.packetSize = this.getPacketSize();
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
+		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = CHAT;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		System.arraycopy(ZERO, 0, header, offset, 4);
+		offset += 4;
+		
+		//데이터 사이즈
+		this.intToByteBuffer(temp.length, header, offset);
+		offset += temp.length;
 		
 		try
 		{
-			os.write(SOP);
-			os.write(this.intToByteBuffer(this.getPacketSize()));
-			os.write(CHAT);
-			os.write(FLAG10);
-			os.write(this.intToByteBuffer(this.id.getBytes().length));
-			os.write(this.id.getBytes());
-			os.write(ZERO);
-			os.write(this.intToByteBuffer(temp.length));
+			os.write(header);
+			os.write(this.id.getBytes());//NAME
 			os.write(temp);
 			os.write(EOP);
 		}
@@ -352,28 +518,55 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 			this.baos.reset();
 			ioe.printStackTrace(System.out);
 		}
-		
+		temp = null;
+		header = null;
 		this.sendMessage(this.out);
 	}
-	
 	private void writeImage(OutputStream os)
 	{
-		this.baos.reset();
+		
+		this.reset();
 		File file = new File(this.filePath);
-		this.data = new byte[(int)file.length()];
+		byte[] data = new byte[(int)file.length()];
 		int n = 0;
+		this.dataSize = data.length;
+		this.packetSize = this.getPacketSize();
+		
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
+		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = IMAGE;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		this.intToByteBuffer(this.fileName.getBytes().length, header, offset);
+		offset += 4;
+		
+		//데이터 사이즈
+		this.intToByteBuffer((int)this.dataSize, header, offset);
+		offset += 4;
 		
 		try
 		{
-			os.write(SOP);
-			os.write(this.intToByteBuffer(this.getPacketSize()));
-			os.write(IMAGE);
-			os.write(FLAG10);
-			os.write(this.intToByteBuffer(this.id.getBytes().length));
-			os.write(this.id.getBytes());
-			os.write(this.intToByteBuffer(this.fileName.getBytes().length));
-			os.write(this.fileName.getBytes());
-			os.write(this.intToByteBuffer((int)file.length()));
+			os.write(header);
+			os.write(this.id.getBytes());//NAME
+			os.write(this.fileName.getBytes());//FNAME
 		}
 		catch(IOException ioe)
 		{
@@ -382,36 +575,180 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 		
 		try(FileInputStream fis = new FileInputStream(file))
 		{
-			while(true)
-			{
-				n = fis.read();
+			n = fis.read(data, 0, data.length);
+			
+			if(n != data.length)
+				throw new java.io.IOException();
+			
+			os.write(data);//DATA
+			os.write(EOP);//EOP
+			this.sendMessage(this.out);
+		}
+		catch(IOException ioe)
+		{
+			this.reset();
+			ioe.printStackTrace(System.out);
+		}		
+		data = null;
+		header = null;
+	}
 	
-				if(n < 0)
-					break;
-				os.write(n);
-			}
-			System.out.println("why it doesnt work? ");
+	private void writeFileAsk(OutputStream os)
+	{
+		this.reset();
+		File file = new File(this.filePath);
+		this.dataSize = file.length();
+		this.packetSize = this.getPacketSize();
+		
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
+		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = FILE_ASK;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		this.intToByteBuffer(this.fileName.getBytes().length, header, offset);
+		offset += 4;
+		
+		//데이터 사이즈
+		this.intToByteBuffer((int)this.dataSize, header, offset);
+		offset += 4;
+		
+		try
+		{
+			os.write(header);
+			os.write(this.id.getBytes());//NAME
+			os.write(this.fileName.getBytes());//FNAME
 			os.write(EOP);
 		}
 		catch(IOException ioe)
 		{
+			this.reset();
 			ioe.printStackTrace(System.out);
 		}
 		
+		header = null;
 		this.sendMessage(this.out);
-		
 	}
-	private void writeFileAsk(OutputStream os)
+	private void writeFileAccept(OutputStream os, String fileName)
 	{
+		this.reset();
+		this.fileName = fileName;
+		this.packetSize = this.getPacketSize();
 		
-	}
-	private void writeFileAccept(OutputStream os)
-	{
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
 		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = FILE_ACCEPT;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		this.intToByteBuffer(this.fileName.getBytes().length, header, offset);
+		offset += 4;
+		
+		//데이터 사이즈
+		this.intToByteBuffer((int)this.dataSize, header, offset);
+		offset += 4;
+		
+		try
+		{
+			os.write(header);
+			os.write(this.id.getBytes());//NAME
+			os.write(this.fileName.getBytes());//FNAME
+			os.write(EOP);
+		}
+		catch(IOException ioe)
+		{
+			this.reset();
+			ioe.printStackTrace(System.out);
+		}
+		
+		header = null;
+		this.sendMessage(this.out);
 	}
 	private void writeFileDecline(OutputStream os)
 	{
+		this.reset();
+		this.fileName = fileName;
+		this.packetSize = this.getPacketSize();
 		
+		byte[] header = new byte[SOP.length + 4 + 1 + FLAG10.length + 4 + 4 + 4];
+		int offset = 0;
+		
+		// SOP
+		System.arraycopy(SOP, 0, header, offset, SOP.length);
+		offset += SOP.length;
+		
+		// 패킷 크기 4bytes
+		this.intToByteBuffer(this.packetSize, header, offset);
+		offset += 4;
+		
+		// 타입
+		header[offset++] = FILE_ACCEPT;
+		
+		// 플래그
+		System.arraycopy(FLAG10, 0, header, offset, FLAG10.length);
+		offset += FLAG10.length;
+		
+		// 네임 사이즈
+		this.intToByteBuffer(this.id.getBytes().length, header, offset);
+		offset += 4;
+		
+		// 파일 네임 사이즈
+		this.intToByteBuffer(this.fileName.getBytes().length, header, offset);
+		offset += 4;
+		
+		//데이터 사이즈
+		this.intToByteBuffer((int)this.dataSize, header, offset);
+		offset += 4;
+		
+		try
+		{
+			os.write(header);
+			os.write(this.id.getBytes());//NAME
+			os.write(this.fileName.getBytes());//FNAME
+			os.write(EOP);
+		}
+		catch(IOException ioe)
+		{
+			this.reset();
+			ioe.printStackTrace(System.out);
+		}
+		
+		header = null;
+		this.sendMessage(this.out);
 	}
 	private void writeFileSend(OutputStream os)
 	{
@@ -419,17 +756,18 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	}
 	private void writeFinish(OutputStream os)
 	{
-		this.baos.reset();
-		
+		this.reset();
+		this.packetSize = this.getPacketSize();
 		try
 		{
 			os.write(SOP);
-			os.write(FINISH);
-			os.write(FLAG10);
-			os.write(this.intToByteBuffer(this.id.getBytes().length));
-			os.write(this.id.getBytes());
-			os.write(ZERO);
-			os.write(ZERO);
+			os.write(this.intToByteBuffer(this.packetSize));
+			os.write(FINISH);//TYPE
+			os.write(FLAG10);//FLAG
+			os.write(this.intToByteBuffer(this.id.getBytes().length));//NSIZE
+			os.write(ZERO);//FNSIZE
+			os.write(ZERO);//DSIZE
+			os.write(this.id.getBytes());//NAME
 			os.write(EOP);
 		}
 		catch(IOException ioe)
@@ -458,7 +796,9 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	{
 		try
 		{
-			System.out.println("@sendMessage@" +this.getBytes());
+			System.out.println("@sendMessage@packetSize : " + this.packetSize);
+			byte[] test = this.intToByteBuffer(this.packetSize);
+			System.out.println("@this.getBytes()@ : " + this.getBytes().length);
 			os.write(this.getBytes());
 		}
 		catch(IOException ioe)
@@ -466,6 +806,19 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 			ioe.printStackTrace(System.out);
 		}
 	}
+	
+	protected void sendFile(String fileName)
+	{
+		
+		System.out.println("다른 놈의 Client에서 받은 FileAccept 요청을 Client-Thread에서 읽은 후, Client에서 처리.");
+		
+	}
+	
+	
+	
+	
+	
+	
 	private byte[] getBytes()
 	{
 		
@@ -494,11 +847,18 @@ public class Client extends JFrame implements ActionListener, KeyListener{
 	private byte[] intToByteBuffer(int value)
 	{
 		byte[] buffer = new byte[4];
-		int temp = value & 0xff000000;
-		buffer[0] = (byte)((value & 0xff000000) >> 24); 
-		buffer[1] = (byte)((value & 0x00ff0000) >> 16);
-		buffer[2] = (byte)((value & 0x0000ff00) >> 8);
-		buffer[3] = (byte)((value & 0x000000ff));
+		this.intToByteBuffer(value, buffer, 0);
 		return buffer;
 	}
+	private byte[] intToByteBuffer(int value, byte[] buffer, int offset)
+	{
+		buffer[offset++] = (byte)((value & 0xff000000) >> 24); 
+		buffer[offset++] = (byte)((value & 0x00ff0000) >> 16);
+		buffer[offset++] = (byte)((value & 0x0000ff00) >> 8);
+		buffer[offset++] = (byte)((value & 0x000000ff));
+
+		return buffer;
+	}
+
+	
 }

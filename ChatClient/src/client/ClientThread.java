@@ -10,17 +10,23 @@ public class ClientThread extends Thread{
 	private Socket socket;
 	private InputStream is;
 	private ByteArrayOutputStream baos;
+	private Client parent;
 	
+	private String id; // 자기 자신의 id
+	private int packetSize;
 	private byte type;
+	private byte[] flag;
 	private int nameSize;
-	private byte[] nameByte;
-	private String name;
+	private byte[] name; // 다른 사람 혹은 자신의 id가 될 수도 있음.
 	private int fileNameSize;
-	private byte[] fileNameByte;
-	private long fileSize;
-	private byte[] fileData;
+	private byte[] fileName;
+	private long dataSize;
+	private byte[] data;
 	
-	private byte[] flag = new byte[2];
+	private String nameString;
+	private String fileNameString;
+	
+	
 	
 	public static final byte JOIN = 0;
 	public static final byte CHAT = 1;
@@ -29,10 +35,13 @@ public class ClientThread extends Thread{
 	public static final byte FILE_ACCEPT = 4;
 	public static final byte FILE_DECLINE = 5;
 	public static final byte FILE_SEND = 6;
-	public static final byte FINISH = 7;
+	public static final byte FINISH = 127;
 	
-	public ClientThread(Socket socket)
+	public ClientThread(Client parent, Socket socket, String id)
 	{
+	
+		this.parent = parent;
+		this.id = id;
 		this.socket = socket;
 		this.baos = new ByteArrayOutputStream();
 		try
@@ -43,6 +52,7 @@ public class ClientThread extends Thread{
 		{
 			ioe.printStackTrace(System.out);
 		}
+		this.flag = new byte[2];
 	}
 	
 	@Override
@@ -56,8 +66,11 @@ public class ClientThread extends Thread{
 				size = this.readMessage(this.is, this.baos);
 				System.out.println("ReadSize : " + size + " /");
 				this.addList();
+				
 				if(size == 0) 
-					break;
+					//break;
+					continue;
+				
 			}
 			catch(IOException ioe)
 			{
@@ -72,30 +85,44 @@ public class ClientThread extends Thread{
 	public void addList()
 	{
 		StringBuilder sb;
-		System.out.println("**TYPE** " + this.type);
 		if(this.type == JOIN)
 		{
-			sb = new StringBuilder("[").append(this.name).append("]님이 입장하였습니다.");
-			Client.addList(sb.toString());
-			System.out.println(this.name + " JOIN");
+			sb = new StringBuilder("[").append(this.nameString).append("]님이 입장하였습니다.");
+			this.parent.addList(sb.toString());
+			System.out.println(this.nameString + " JOIN");
 		}
 			
 		if (this.type == CHAT)
 		{
-			sb = new StringBuilder("[").append(this.name).append("]").append(new String(this.fileData));
-			Client.addList(sb.toString());
+			sb = new StringBuilder("[").append(this.nameString).append("]").append(new String(this.data));
+			this.parent.addList(sb.toString());
 	
 		}
 		
 		if(this.type == IMAGE)
 		{
-			sb = new StringBuilder("[").append(this.name).append("]님이 ").append(new String(this.fileNameByte)).append("를 보내셨습니다.");
-			Client.addList(sb.toString());
-			Client.viewImage(new String(this.fileNameByte), this.fileData);
+			if(this.id.equals(this.nameString))
+				return;
+			sb = new StringBuilder("[").append(this.nameString).append("]님이 ").append(new String(this.fileName)).append("를 보내셨습니다.");
+			this.parent.addList(sb.toString());
+			this.parent.viewImage(new String(this.fileName), this.data);
+		}
+		if(this.type == FILE_ASK)
+		{
+			if(this.id.equals(this.nameString))
+				return;
+			this.parent.viewFileInfo(this.id, this.nameString, this.fileNameString, this.dataSize);
+			//fileInfo 저장
+			this.parent.save
+		}
+		if(this.type == FILE_ACCEPT)
+		{
+			this.parent.sendFile(this.fileNameString);
 		}
 		if(this.type == FINISH)
 		{
-			sb = new StringBuilder("");
+			sb = new StringBuilder("[채팅 종료]");
+			this.parent.addList(sb.toString());
 		}
 	}
 	/**
@@ -115,77 +142,69 @@ public class ClientThread extends Thread{
 		int temp = 0;
 		this.baos.reset();
 		
-		System.out.println("1");
-		if((temp = this.readSop(is)) != 0)
+		if((temp = this.readSOP(is)) != 0)
 			size += temp;
 		else
 			return temp;
 		
-		System.out.println("2");
+		if((temp = this.readPacketSize(is)) != 0)
+			size += temp;
+		else
+			return temp;
+		
 		if((temp = this.readType(is)) != 0)
 			size += temp;
 		else
 			return temp;
-		System.out.println("3");
 		
 		if((temp = this.readFlag(is)) != 0)
 			size += temp;
 		else
 			return temp;
 		
-		System.out.println("4");
 		
-		if((temp = this.readNsize(is)) != 0)
+		if((temp = this.readNameSize(is)) != 0)
 			size += temp;
 		else
 			return temp;
 		
-		
-		System.out.println("5");
-		if((temp = this.readName(is)) != 0)
-			size += temp;
-		else
-			return temp;
-
-		
-		System.out.println("6");
-		if((temp = this.readFnsize(is)) != 0)
+		if((temp = this.readFileNameSize(is)) != 0)
 			size += temp;
 		else 
 			return temp;
 		
-		if(this.fileNameSize != 0)
-		{
-			System.out.println("7");
-			if((temp = this.readFname(is)) != 0)
-				size += temp;
-			else
-				return temp;
-		}
-		
-		System.out.println("8");
-		if((temp = this.readSize(is)) != 0)
+		if((temp = this.readDataSize(is)) != 0)
 			size += temp;
 		else
 			return temp;
 		
+		if((temp = this.readName(is)) != 0)
+			size += temp;
+		else
+			return temp;
 		
-		if(this.fileSize != 0)
+		//FILE 쪽 수정해야함.
+		if(this.fileNameSize != 0)
 		{
-			System.out.println("9");
+			if((temp = this.readFileName(is)) != 0)
+				size += temp;
+			else
+				return temp;
+		}
+
+		if(this.type != FILE_ASK && this.dataSize != 0)
+		{
 			if((temp = this.readData(is)) != 0)
 				size += temp;
 			else 
 				return temp;
 		}
-		
-		System.out.println("10");
+
 		if((temp = this.readEOP(is)) != 0)
 			size += temp;
 		else
 			return temp;
 		
-		System.out.println("11");
 		return size;
 	}
 	
@@ -196,7 +215,7 @@ public class ClientThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readSop(InputStream is) throws IOException
+	private int readSOP(InputStream is) throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -205,13 +224,28 @@ public class ClientThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		System.out.println("@" + this.byteBufferToInt(checkBuffer, 4));
+		System.out.println("@readSOP@this.id : " + this.id);
+		System.out.println("@readSOP@SOP : " + this.byteBufferToInt(checkBuffer, 4));
 		if(this.byteBufferToInt(checkBuffer, 4) != 0)
 			return 0;
 				
 		return n;
 	}
 	
+	private int readPacketSize(InputStream is) throws IOException
+	{
+		int n = 0;
+		byte[] checkBuffer = new byte[4];
+		
+		n = is.read(checkBuffer, 0, 4);
+		
+		if(n != 4)
+			return 0;
+		
+		this.packetSize = this.byteBufferToInt(checkBuffer, 4);
+		System.out.println("@readPacketSize@packetSize : " + this.packetSize);
+		return n;
+	}
 	/**
 	 * 1바이트에 해당하는 TYPE을 읽고 정상이면 1, 오류면 0을 반환.
 	 * this.type 값을 초기화해준다.
@@ -227,35 +261,35 @@ public class ClientThread extends Thread{
 		switch(n)
 		{
 		case 0:
-			this.type = this.JOIN;
+			this.type = JOIN;
 			break;
 		case 1:
-			this.type = this.CHAT;
+			this.type = CHAT;
 			break;
 		case 2:
-			this.type = this.IMAGE;
+			this.type = IMAGE;
 			break;
 		case 3:
-			this.type = this.FILE_ASK;
+			this.type = FILE_ASK;
 			break;
 		case 4:
-			this.type = this.FILE_ACCEPT;
+			this.type = FILE_ACCEPT;
 			break;
 		case 5:
-			this.type = this.FILE_DECLINE;
+			this.type = FILE_DECLINE;
 			break;
 		case 6:
-			this.type = this.FILE_SEND;
+			this.type = FILE_SEND;
 			break;
-		case 7:
-			this.type = this.FINISH;
+		case 127:
+			this.type = FINISH;
 			break;
 		default:
 			this.type = -1;
 			break;
 		}
 		
-		System.out.println("T@"+this.type);
+		System.out.println("@readType@type : "+this.type);
 		if(this.type != -1)
 			return 1;
 		else
@@ -272,7 +306,7 @@ public class ClientThread extends Thread{
 		if(n != 2)
 			return 0;
 		
-		System.out.println("F@"+flagCheck[0] +"@" + flagCheck[1]);
+		System.out.println("@readFlag@flag : "+flagCheck[0] + flagCheck[1]);
 		System.arraycopy(flagCheck, 0, this.flag, 0, 2);
 		return 2;
 	}
@@ -283,7 +317,7 @@ public class ClientThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readNsize(InputStream is)throws IOException
+	private int readNameSize(InputStream is)throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -295,7 +329,7 @@ public class ClientThread extends Thread{
 		
 		
 		this.nameSize = this.byteBufferToInt(checkBuffer, 4);
-		System.out.println("NS@"+this.nameSize);
+		System.out.println("@readNameSize@nameSize : "+this.nameSize);
 		return n;
 	}
 	
@@ -309,24 +343,24 @@ public class ClientThread extends Thread{
 	private int readName(InputStream is)throws IOException
 	{
 		int n = 0;
-		this.nameByte = new byte[this.nameSize];
-		n = is.read(this.nameByte, 0, this.nameSize);
+		this.name = new byte[this.nameSize];
+		n = is.read(this.name, 0, this.nameSize);
 
 		if(n != this.nameSize)
 			return 0;
 		
 		try
 		{
-			this.name = new String(this.nameByte, "utf-8");
+			this.nameString = new String(this.name, "utf-8");
 		}
 		catch(UnsupportedEncodingException uee)
 		{
-			this.name = new String(this.nameByte);
+			this.nameString = new String(this.name);
 		}
-		
+		System.out.println("@readName@name : " + this.nameString);
 		return n;
 	}
-	private int readFnsize(InputStream is) throws IOException
+	private int readFileNameSize(InputStream is) throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -336,18 +370,27 @@ public class ClientThread extends Thread{
 			return 0;
 		
 		this.fileNameSize = this.byteBufferToInt(checkBuffer, 4);
+		System.out.println("@readFileNameSize@fileNameSize : " + this.fileNameSize);
 		return n;
 	}
 	
-	private int readFname(InputStream is) throws IOException
+	private int readFileName(InputStream is) throws IOException
 	{
 		int n = 0;
-		this.fileNameByte = new byte[this.fileNameSize];
-		n = is.read(this.fileNameByte, 0, this.fileNameSize);
+		this.fileName = new byte[this.fileNameSize];
+		n = is.read(this.fileName, 0, this.fileNameSize);
 		
 		if(n != this.fileNameSize)
 			return 0;
-		
+		try
+		{
+			this.fileNameString = new String(this.fileName, "utf-8");
+		}
+		catch(UnsupportedEncodingException uee)
+		{
+			this.fileNameString = new String(this.fileName);
+		}
+		System.out.println("@readFileName@fileName : " + this.fileNameString);
 		return n;
 	}
 	/**
@@ -356,7 +399,7 @@ public class ClientThread extends Thread{
 	 * @return 정상 -> 4, 오류 -> 0
 	 * @throws IOException
 	 */
-	private int readSize(InputStream is)throws IOException
+	private int readDataSize(InputStream is)throws IOException
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
@@ -364,8 +407,9 @@ public class ClientThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		System.out.println("&&"+this.byteBufferToLong(checkBuffer, 4));
-		this.fileSize = this.byteBufferToLong(checkBuffer, 4);
+		System.out.println("@readDataSize@dataSize : "+this.byteBufferToLong(checkBuffer, 4));
+		
+		this.dataSize = this.byteBufferToLong(checkBuffer, 4);
 		return n;
 	}
 	
@@ -378,30 +422,14 @@ public class ClientThread extends Thread{
 	private int readData(InputStream is) throws IOException
 	{
 		int n = 0;
+		this.data = new byte[(int)this.dataSize];
 		
-		if(this.type == CHAT || this.type == IMAGE)
-		{
-			this.fileData = new byte[(int)this.fileSize];
-			int index = 0;
-			while(true)
-			{
-				n = is.read();
-				this.fileData[index] = (byte)n;
-				if(++index == (int)this.fileSize)
-					break;
-			}
-		}
-		if(this.type == FILE_SEND)
-		{
-			
-		}
-		else
-		{
-			System.out.println("readData@@@ type error");
+		n = is.read(this.data, 0, (int)this.dataSize);
+		
+		if(n != (int)this.dataSize)
 			return 0;
-		}
-		return (int)this.fileSize;///////
-		
+		System.out.println("@readData@data : " + new String(this.data));
+		return (int)this.dataSize;
 	}
 	
 	/**
@@ -422,7 +450,7 @@ public class ClientThread extends Thread{
 		
 		if(this.byteBufferToInt(checkBuffer, 4) != (int)0xffffffff)
 			return 0;
-		
+		System.out.println("@readEOP@EOP");
 		return n;
 	}
 	private int byteBufferToInt(byte[] buffer, int size)
@@ -461,4 +489,5 @@ public class ClientThread extends Thread{
 	{
 		return this.baos.toByteArray();
 	}
+	
 }

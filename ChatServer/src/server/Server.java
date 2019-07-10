@@ -48,7 +48,7 @@ public class Server extends JFrame implements ActionListener{
 	public Server()
 	{
 		this.setFrame();
-		clients = new HashMap();
+		clients = new HashMap<String, OutputStream>();
 		collections.synchronizedMap(clients);
 		
 	}

@@ -8,6 +8,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.io.UnsupportedEncodingException;
 
+/**
+ * client에게서 오는 packet을 read하고 그대로 broadcasting 해주는 클래스.
+ * write하는 것은 Server 클래스의 broadcasting 말고는 없음.
+ * @author hkj
+ *
+ */
 public class ServerThread extends Thread{
 	private Socket socket;
 	private ByteArrayOutputStream baos;
@@ -15,16 +21,17 @@ public class ServerThread extends Thread{
 	private OutputStream os;
 	
 	private int packetSize;
-	public byte type;
+	private byte type;
 	private byte[] flag;
-	private String name;
 	private int nameSize;
-	private byte[] nameByte;
+	private byte[] name;
 	private int fileNameSize;
-	private byte[] fileNameByte;
+	private byte[] fileName;
 	private long dataSize;
 	private byte[] data;
 	
+	private String nameString;
+	private String fileNameString;
 	
 	
 	public static final int MAX_READ = 65536;
@@ -64,9 +71,8 @@ public class ServerThread extends Thread{
 		{
 			size = this.readMessage(this.is, this.baos);
 			
-			Server.addClient(this.name, this.os);
-			System.out.println("SIZE : " +Server.clients.size());
-			Server.addList(this.name+"님이 접속했습니다.");
+			Server.addClient(this.nameString, this.os);
+			Server.addList(this.nameString + "님이 접속했습니다. 현재 접속자 수 : " + Server.clients.size());
 			
 			while(this.is != null)
 			{
@@ -90,7 +96,7 @@ public class ServerThread extends Thread{
 		finally
 		{
 			Server.broadcasting(this.getBytes());
-			Server.clients.remove(this.name);
+			Server.clients.remove(this.nameString);
 			StringBuilder sb = new StringBuilder("[").append(this.socket.getInetAddress()).append(":").append(socket.getPort()).append("]에서 접속을 종료하였습니다.");
 			Server.addList(sb.toString());
 		}
@@ -103,11 +109,12 @@ public class ServerThread extends Thread{
 		this.flag = null;
 		this.nameSize = 0;
 		this.name = null;
-		this.nameByte = null;
 		this.fileNameSize = 0;
-		this.fileNameByte = null;
+		this.fileName = null;
 		this.dataSize = 0;
 		this.data = null;
+		this.nameString = null;
+		this.fileNameString = null;
 		this.baos.reset();
 	}
 	
@@ -128,104 +135,106 @@ public class ServerThread extends Thread{
 		int temp = 0;
 		this.baos.reset();
 		
-		System.out.println("0");
-		///SOP(4)
-		if((temp = this.readSOP(is, this.baos)) != 0)
+		if((temp = this.readSOP(is, os)) != 0)
 			size += temp;
 		else
 		{
+			System.out.println("SOP fail");
 			this.reset();
 			return temp;
 		}
-		System.out.println("1");
-		///packetSize(4)
+		
 		if((temp = this.readPacketSize(is, os)) != 0)
 			size += temp;
 		else
 		{
+			System.out.println("packetSize fail");
 			this.reset();
 			return temp;
 		}
-		System.out.println("2");
-		///type(1)
-		if((temp = this.readType(is, this.baos)) != 0)
+		
+		if((temp = this.readType(is, os)) != 0)
+			size += temp;
+		else
+		{
+			System.out.println("type fail");
+			this.reset();
+			return temp;
+		}
+
+		if((temp = this.readFlag(is, os)) != 0)
 			size += temp;
 		else
 		{
 			this.reset();
 			return temp;
 		}
-		System.out.println("3");
-		///type == JOIN or FINISH
-		if(this.type == JOIN || this.type == FINISH)
+		
+		if((temp = this.readNameSize(is, os)) != 0)
+			size += temp;
+		else
 		{
-			System.out.println("4");
-			//flag(2)
-			if((temp = this.readFlag(is, this.baos)) != 0)
+			this.reset();
+			return temp;
+		}
+		
+		if((temp = this.readFileNameSize(is, os)) != 0)
+			size += temp;
+		else 
+		{
+			this.reset();
+			return temp;
+		}
+		
+		if((temp = this.readDataSize(is, os)) != 0)
+			size += temp;
+		else
+		{
+			this.reset();
+			return temp;
+		}
+		
+		if((temp = this.readName(is, os)) != 0)
+			size += temp;
+		else
+		{
+			this.reset();
+			return temp;
+		}
+
+		if(this.fileNameSize != 0)
+		{
+			if((temp = this.readFileName(is, os)) != 0)
 				size += temp;
 			else
 			{
 				this.reset();
 				return temp;
 			}
-			System.out.println("5");
-			///nameSize(4)
-			if((temp = this.readNameSize(is, this.baos)) != 0)
-				size += temp;
-			else
-			{
-				this.reset();
-				return temp;
-			}
-			System.out.println("6");
-			///name(nameSize)
-			if((temp = this.readName(is, this.baos)) != 0)
-				size += temp;
-			else
-			{
-				this.reset();
-				return temp;
-			}
-			System.out.println("7");
-			///fileNameSize(4)
-			if((temp = this.readFileNameSize(is, this.baos)) != 0)
+			
+		}
+		
+		if(this.dataSize != 0 && this.type != FILE_ASK)
+		{
+			System.out.println("??");
+			if((temp = this.readData(is, os)) != 0)
 				size += temp;
 			else 
 			{
 				this.reset();
 				return temp;
 			}
-			System.out.println("8");
-			///dataSize(4)
-			if((temp = this.readDataSize(is, this.baos)) != 0)
-				size += temp;
-			else
-			{
-				this.reset();
-				return temp;
-			}
-			System.out.println("9");
-			///EOP(4)
-			if((temp = this.readEOP(is, this.baos)) != 0)
-				size += temp;
-			else
-			{
-				this.reset();
-				return temp;
-			}
-		}//JOIN or FINISH
+		}
+		
+		if((temp = this.readEOP(is, os)) != 0)
+			size += temp;
 		else
 		{
-			System.out.println("10");
-			if((temp = this.readRemainder(is, os)) != 0)
-				size += temp;
-			else
-			{
-				this.reset();
-				return temp;
-			}
+			System.out.println("what?");
+			this.reset();
+			return temp;
 		}
-		System.out.println("11");
+		System.out.println("+@#!@?");
 		return size;
 	}
 	
@@ -257,15 +266,21 @@ public class ServerThread extends Thread{
 	{
 		int n = 0;
 		byte[] checkBuffer = new byte[4];
+		
 		n = is.read(checkBuffer, 0, 4);
 		
 		if(n != 4)
 			return 0;
 		
 		this.packetSize = this.byteBufferToInt(checkBuffer, 4);
+		
+		if(this.packetSize < 0)
+			return 0;
+		
+		System.out.println("@readPacketSize@packetSize : " + this.packetSize);
 		os.write(checkBuffer);
 		return n;
-	}
+	}	
 	/**
 	 * 1바이트에 해당하는 TYPE을 읽고 정상이면 1, 오류면 0을 반환.
 	 * this.type 값을 초기화해준다.
@@ -352,7 +367,7 @@ public class ServerThread extends Thread{
 		
 		
 		this.nameSize = this.byteBufferToInt(checkBuffer, 4);
-		System.out.println("@readNsize@nameSize :"+this.nameSize);
+		System.out.println("@readNameSize@nameSize :"+this.nameSize);
 		os.write(checkBuffer);
 		return n;
 	}
@@ -367,22 +382,22 @@ public class ServerThread extends Thread{
 	private int readName(InputStream is, OutputStream os)throws IOException
 	{
 		int n = 0;
-		this.nameByte = new byte[this.nameSize];
-		n = is.read(this.nameByte, 0, this.nameSize);
+		this.name = new byte[this.nameSize];
+		n = is.read(this.name, 0, this.nameSize);
 
 		if(n != this.nameSize)
 			return 0;
 		
 		try
 		{
-			this.name = new String(this.nameByte, "utf-8");
+			this.nameString = new String(this.name, "utf-8");
 		}
 		catch(UnsupportedEncodingException uee)
 		{
-			this.name = new String(this.nameByte);
+			this.nameString = new String(this.name);
 		}
-		System.out.println("@readName@name : " + this.name);
-		os.write(this.nameByte);
+		System.out.println("@readName@name : " + this.nameString);
+		os.write(this.name);
 		return n;
 	}
 	
@@ -404,13 +419,21 @@ public class ServerThread extends Thread{
 	private int readFileName(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
-		this.fileNameByte = new byte[this.fileNameSize];
-		n = is.read(this.fileNameByte, 0, this.fileNameSize);
+		this.fileName = new byte[this.fileNameSize];
+		n = is.read(this.fileName, 0, this.fileNameSize);
 		
 		if(n != this.fileNameSize)
 			return 0;
-		System.out.println("@readFname@fileName :" + new String(this.fileNameByte));
-		os.write(this.fileNameByte);
+		try
+		{
+			this.fileNameString = new String(this.fileName, "utf-8");
+		}
+		catch(UnsupportedEncodingException uee)
+		{
+			this.fileNameString = new String(this.fileName);
+		}
+		System.out.println("@readFileName@fileName :" + this.fileNameString);
+		os.write(this.fileName);
 		return n;
 	}
 	/**
@@ -427,28 +450,31 @@ public class ServerThread extends Thread{
 		
 		if(n != 4)
 			return 0;
-		System.out.println("&&"+this.byteBufferToLong(checkBuffer, 4));
+
 		this.dataSize = this.byteBufferToLong(checkBuffer, 4);
-		System.out.println("@readSize@fileSize :" + this.dataSize);
+		System.out.println("@readDataSize@dataSize :" + this.dataSize);
 		os.write(checkBuffer);
 		return n;
 	}
 	
 	/**
-	 * dataSize에 해당하는 만큼의 바이트를 읽고, data를 초기화한다.
+	 * fileSize에 해당하는 만큼의 바이트를 읽고, fileData를 초기화한다.
 	 * @param is
-	 * @return 정상 -> dataSize, 오류 -> 0
+	 * @return 정상 -> fileSize, 오류 -> 0
 	 * @throws IOException
 	 */
 	private int readData(InputStream is, OutputStream os) throws IOException
 	{
 		int n = 0;
+		
 		this.data = new byte[(int)this.dataSize];
+		
 		n = is.read(this.data, 0, (int)this.dataSize);
 		
-		if(n != this.dataSize)
+		if(n != (int)this.dataSize)
 			return 0;
-		
+		System.out.println("@readData@data : " +new String(this.data));
+		os.write(this.data);
 		return (int)this.dataSize;
 	}
 	
@@ -474,30 +500,7 @@ public class ServerThread extends Thread{
 		System.out.println("@readEOP@EOP");
 		return n;
 	}
-	
-	/**
-	 * SOP(4) + packetSize(4) + type(1)
-	 * => 9
-	 * @param is
-	 * @param os
-	 * @return
-	 * @throws IOException
-	 */
-	private int readRemainder(InputStream is, OutputStream os) throws IOException
-	{
-		int header = 9;
-		int n = 0;
-		byte[] buffer = new byte[(int)this.packetSize - header];
-	
-		n = is.read(buffer, 0, buffer.length);
-		
-		if(n != buffer.length)
-			return 0;
-		
-		os.write(buffer);
-		buffer = null;
-		return ((int)this.packetSize - header);
-	}
+
 	public String getString()
 	{
 		try
